@@ -1,6 +1,6 @@
 {
-    "name": "simple_athan_app",
-    "short_name": "simple_athan_app",
+    "name": "athan_app",
+    "short_name": "athan_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
