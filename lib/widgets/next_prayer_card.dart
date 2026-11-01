@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 
-import '../data/prayer_times_service.dart';
 import '../models/prayer.dart';
+import '../models/prayer_schedule.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_format.dart';
 
 /// Floating card showing the upcoming prayer and a live countdown.
 class NextPrayerCard extends StatelessWidget {
-  const NextPrayerCard({super.key, required this.now});
+  const NextPrayerCard({super.key, required this.now, required this.day});
 
   final DateTime now;
+  final PrayerDay day;
 
   @override
   Widget build(BuildContext context) {
-    final PrayerTime next = PrayerTimesService.nextPrayer(now);
-    final PrayerTime previous = PrayerTimesService.previousPrayer(now);
+    final PrayerTime next = day.next;
+    final PrayerTime previous = day.previous;
     final Duration remaining = next.time.difference(now);
     final int span = next.time.difference(previous.time).inSeconds;
     final int elapsed = now.difference(previous.time).inSeconds;

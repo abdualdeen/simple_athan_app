@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../data/prayer_times_service.dart';
 import '../models/prayer.dart';
+import '../models/prayer_schedule.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_format.dart';
 
@@ -9,19 +9,18 @@ import '../utils/date_format.dart';
 class PrayerList extends StatelessWidget {
   const PrayerList({
     super.key,
-    required this.now,
+    required this.day,
     required this.muted,
     required this.onToggleMute,
   });
 
-  final DateTime now;
+  final PrayerDay day;
   final Set<PrayerId> muted;
   final ValueChanged<PrayerId> onToggleMute;
 
   @override
   Widget build(BuildContext context) {
-    final PrayerSchedule schedule = PrayerTimesService.forDate(now);
-    final PrayerTime next = PrayerTimesService.nextPrayer(now);
+    final PrayerSchedule schedule = day.schedule;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -45,7 +44,7 @@ class PrayerList extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Adhan times for ${PrayerTimesService.locationName}',
+            'Adhan times for today',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -54,7 +53,7 @@ class PrayerList extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: _PrayerTile(
                 prayer: prayer,
-                isNext: prayer.id == next.id,
+                isNext: prayer.id == day.next.id,
                 isMuted: muted.contains(prayer.id),
                 onToggleMute: () => onToggleMute(prayer.id),
               ),

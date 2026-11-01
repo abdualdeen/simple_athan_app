@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../controllers/prayer_times_controller.dart';
+import '../screens/settings_screen.dart';
 import '../theme/app_theme.dart';
 
-/// Side menu with the app's main destinations. Everything except Home is a
-/// placeholder for features that will be added later.
+/// Side menu with the app's main destinations.
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  const AppDrawer({super.key, required this.controller});
+
+  final PrayerTimesController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +33,8 @@ class AppDrawer extends StatelessWidget {
                 _DrawerItem(
                   icon: Icons.settings_outlined,
                   label: 'Settings',
-                  onTap: () => _showComingSoon(context, 'Settings'),
+                  comingSoon: false,
+                  onTap: () => _openSettings(context),
                 ),
                 _DrawerItem(
                   icon: Icons.explore_outlined,
@@ -62,6 +66,17 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openSettings(BuildContext context) {
+    final NavigatorState navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) =>
+            SettingsScreen(controller: controller),
       ),
     );
   }
@@ -143,12 +158,14 @@ class _DrawerItem extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.selected = false,
+    this.comingSoon = true,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final bool selected;
+  final bool comingSoon;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +199,7 @@ class _DrawerItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (!selected)
+                if (comingSoon && !selected)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,

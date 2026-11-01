@@ -13,12 +13,14 @@ class HomeHeader extends StatelessWidget {
     required this.locationName,
     required this.onMenuTap,
     required this.onLocationTap,
+    this.isLocating = false,
   });
 
   final DateTime date;
   final String locationName;
   final VoidCallback onMenuTap;
   final VoidCallback onLocationTap;
+  final bool isLocating;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +66,7 @@ class HomeHeader extends StatelessWidget {
                           alignment: Alignment.centerRight,
                           child: _LocationPill(
                             name: locationName,
+                            isLocating: isLocating,
                             onTap: onLocationTap,
                           ),
                         ),
@@ -158,10 +161,15 @@ class _RoundIconButton extends StatelessWidget {
 }
 
 class _LocationPill extends StatelessWidget {
-  const _LocationPill({required this.name, required this.onTap});
+  const _LocationPill({
+    required this.name,
+    required this.onTap,
+    this.isLocating = false,
+  });
 
   final String name;
   final VoidCallback onTap;
+  final bool isLocating;
 
   @override
   Widget build(BuildContext context) {
@@ -194,12 +202,24 @@ class _LocationPill extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 2),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 18,
-                color: Colors.white.withValues(alpha: 0.75),
-              ),
+              const SizedBox(width: 4),
+              if (isLocating)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.8,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.goldSoft,
+                    ),
+                  ),
+                )
+              else
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
             ],
           ),
         ),
