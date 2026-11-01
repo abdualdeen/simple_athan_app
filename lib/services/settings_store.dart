@@ -4,6 +4,7 @@ import '../models/app_location.dart';
 import '../models/notification_settings.dart';
 import '../models/prayer.dart';
 import '../models/prayer_settings.dart';
+import '../theme/app_theme.dart';
 
 abstract interface class SettingsStore {
   Future<PrayerSettings> loadSettings();
@@ -12,6 +13,8 @@ abstract interface class SettingsStore {
   Future<void> saveLocation(AppLocation location);
   Future<NotificationSettings> loadNotificationSettings();
   Future<void> saveNotificationSettings(NotificationSettings settings);
+  Future<AppThemeChoice> loadTheme();
+  Future<void> saveTheme(AppThemeChoice choice);
 }
 
 class SharedPreferencesSettingsStore implements SettingsStore {
@@ -22,6 +25,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   static const String _locationLongitudeKey = 'location_longitude';
   static const String _notificationsEnabledKey = 'notifications_enabled';
   static const String _mutedPrayersKey = 'muted_prayers';
+  static const String _themeKey = 'app_theme';
 
   @override
   Future<PrayerSettings> loadSettings() async {
@@ -81,5 +85,17 @@ class SharedPreferencesSettingsStore implements SettingsStore {
       _mutedPrayersKey,
       settings.muted.map((PrayerId id) => id.name).toList(),
     );
+  }
+
+  @override
+  Future<AppThemeChoice> loadTheme() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return AppThemeChoice.fromName(prefs.getString(_themeKey));
+  }
+
+  @override
+  Future<void> saveTheme(AppThemeChoice choice) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeKey, choice.name);
   }
 }

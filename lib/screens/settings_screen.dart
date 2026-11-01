@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
+import '../controllers/theme_controller.dart';
 import '../models/notification_settings.dart';
 import '../models/prayer.dart';
 import '../models/prayer_settings.dart';
@@ -8,17 +9,23 @@ import '../theme/app_theme.dart';
 import 'manual_location_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key, required this.controller});
+  const SettingsScreen({
+    super.key,
+    required this.controller,
+    required this.themeController,
+  });
 
   final PrayerTimesController controller;
+  final ThemeController themeController;
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: palette.background,
       appBar: AppBar(
-        backgroundColor: AppColors.emerald,
-        foregroundColor: Colors.white,
+        backgroundColor: palette.primary,
+        foregroundColor: palette.onPrimary,
         elevation: 0,
         title: const Text(
           'Settings',
@@ -28,6 +35,7 @@ class SettingsScreen extends StatelessWidget {
       body: ListenableBuilder(
         listenable: controller,
         builder: (BuildContext context, Widget? _) {
+          final AppPalette palette = context.palette;
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             children: <Widget>[
@@ -72,11 +80,11 @@ class SettingsScreen extends StatelessWidget {
                           );
                         },
                         style: SegmentedButton.styleFrom(
-                          selectedBackgroundColor: AppColors.emerald,
-                          selectedForegroundColor: Colors.white,
-                          foregroundColor: AppColors.ink,
+                          selectedBackgroundColor: palette.primary,
+                          selectedForegroundColor: palette.onPrimary,
+                          foregroundColor: palette.ink,
                           side: BorderSide(
-                            color: AppColors.emerald.withValues(alpha: 0.2),
+                            color: palette.primary.withValues(alpha: 0.2),
                           ),
                         ),
                       ),
@@ -84,10 +92,7 @@ class SettingsScreen extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text(
                       controller.settings.madhab.description,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.inkMuted,
-                      ),
+                      style: TextStyle(fontSize: 12, color: palette.inkMuted),
                     ),
                   ],
                 ),
@@ -96,17 +101,27 @@ class SettingsScreen extends StatelessWidget {
               const _SectionLabel('NOTIFICATIONS'),
               _NotificationCard(controller: controller),
               const SizedBox(height: 24),
+              const _SectionLabel('APPEARANCE'),
+              _SettingsCard(
+                child: _SettingRow(
+                  icon: Icons.palette_outlined,
+                  title: 'Theme',
+                  value: themeController.choice.label,
+                  onTap: () => _pickTheme(context),
+                ),
+              ),
+              const SizedBox(height: 24),
               const _SectionLabel('ABOUT'),
-              const _SettingsCard(
+              _SettingsCard(
                 child: Column(
                   children: <Widget>[
-                    _InfoRow(
+                    const _InfoRow(
                       icon: Icons.public_rounded,
                       title: 'High latitude rule',
                       value: 'Automatic',
                     ),
-                    SizedBox(height: 12),
-                    _InfoRow(
+                    const SizedBox(height: 12),
+                    const _InfoRow(
                       icon: Icons.auto_awesome_rounded,
                       title: 'Calculation engine',
                       value: 'Adhan',
@@ -115,12 +130,12 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Prayer times are calculated astronomically for your location. '
                 'Times can differ by a minute or two from your local mosque.',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.inkMuted,
+                  color: palette.inkMuted,
                   height: 1.45,
                 ),
               ),
@@ -132,14 +147,16 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _pickMethod(BuildContext context) async {
+    final AppPalette palette = context.palette;
     final PrayerMethod? selected = await showModalBottomSheet<PrayerMethod>(
       context: context,
-      backgroundColor: AppColors.cream,
+      backgroundColor: palette.background,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (BuildContext sheetContext) {
+        final AppPalette sheetPalette = sheetContext.palette;
         return SafeArea(
           child: ConstrainedBox(
             constraints: BoxConstraints(
@@ -153,12 +170,12 @@ class SettingsScreen extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.inkMuted.withValues(alpha: 0.3),
+                    color: sheetPalette.inkMuted.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -166,7 +183,7 @@ class SettingsScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink,
+                        color: sheetPalette.ink,
                       ),
                     ),
                   ),
@@ -188,13 +205,13 @@ class SettingsScreen extends StatelessWidget {
                               fontWeight: method == controller.settings.method
                                   ? FontWeight.w700
                                   : FontWeight.w500,
-                              color: AppColors.ink,
+                              color: sheetPalette.ink,
                             ),
                           ),
                           trailing: method == controller.settings.method
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check_circle_rounded,
-                                  color: AppColors.emerald,
+                                  color: sheetPalette.primary,
                                   size: 20,
                                 )
                               : null,
@@ -216,6 +233,124 @@ class SettingsScreen extends StatelessWidget {
       );
     }
   }
+
+  Future<void> _pickTheme(BuildContext context) async {
+    final AppPalette palette = context.palette;
+    final AppThemeChoice? selected = await showModalBottomSheet<AppThemeChoice>(
+      context: context,
+      backgroundColor: palette.background,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext sheetContext) {
+        final AppPalette sheetPalette = sheetContext.palette;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const SizedBox(height: 10),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: sheetPalette.inkMuted.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Theme',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: sheetPalette.ink,
+                      ),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                    children: <Widget>[
+                      for (final AppThemeChoice choice in AppThemeChoice.values)
+                        ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          leading: _ThemeSwatch(choice: choice),
+                          title: Text(
+                            choice.label,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: choice == themeController.choice
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: sheetPalette.ink,
+                            ),
+                          ),
+                          trailing: choice == themeController.choice
+                              ? Icon(
+                                  Icons.check_circle_rounded,
+                                  color: sheetPalette.primary,
+                                  size: 20,
+                                )
+                              : null,
+                          onTap: () => Navigator.of(sheetContext).pop(choice),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      await themeController.select(selected);
+    }
+  }
+}
+
+class _ThemeSwatch extends StatelessWidget {
+  const _ThemeSwatch({required this.choice});
+
+  final AppThemeChoice choice;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = AppPalettes.forChoice(choice);
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            palette.primarySoft,
+            palette.primary,
+            palette.primaryDeep,
+          ],
+        ),
+        border: Border.all(
+          color: palette.accent.withValues(alpha: 0.7),
+          width: 1.5,
+        ),
+      ),
+    );
+  }
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -225,15 +360,16 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.4,
-          color: AppColors.inkMuted,
+          color: palette.inkMuted,
         ),
       ),
     );
@@ -247,12 +383,13 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Material(
-      color: AppColors.surface,
+      color: palette.surface,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: AppColors.emerald.withValues(alpha: 0.07)),
+        side: BorderSide(color: palette.primary.withValues(alpha: 0.07)),
       ),
       child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
@@ -266,6 +403,7 @@ class _LocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     final String? error = controller.locationError;
 
     return _SettingsCard(
@@ -278,12 +416,12 @@ class _LocationCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.cream,
+                  color: palette.background,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.location_on_outlined,
-                  color: AppColors.emerald,
+                  color: palette.primary,
                   size: 22,
                 ),
               ),
@@ -294,19 +432,16 @@ class _LocationCard extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       controller.location.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
+                        color: palette.ink,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       controller.location.coordinatesLabel,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.inkMuted,
-                      ),
+                      style: TextStyle(fontSize: 12, color: palette.inkMuted),
                     ),
                   ],
                 ),
@@ -317,9 +452,9 @@ class _LocationCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               error,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
-                color: Color(0xFFB3261E),
+                color: palette.error,
                 height: 1.35,
               ),
             ),
@@ -332,12 +467,14 @@ class _LocationCard extends StatelessWidget {
                   ? null
                   : controller.refreshLocation,
               icon: controller.isLocating
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          palette.onPrimary,
+                        ),
                       ),
                     )
                   : const Icon(Icons.my_location_rounded, size: 18),
@@ -345,8 +482,8 @@ class _LocationCard extends StatelessWidget {
                 controller.isLocating ? 'Locating…' : 'Update from device',
               ),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.emerald,
-                foregroundColor: Colors.white,
+                backgroundColor: palette.primary,
+                foregroundColor: palette.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -367,10 +504,8 @@ class _LocationCard extends StatelessWidget {
               icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
               label: const Text('Enter location manually'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.emerald,
-                side: BorderSide(
-                  color: AppColors.emerald.withValues(alpha: 0.3),
-                ),
+                foregroundColor: palette.label,
+                side: BorderSide(color: palette.label.withValues(alpha: 0.35)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -399,6 +534,7 @@ class _SettingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -408,7 +544,7 @@ class _SettingRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             children: <Widget>[
-              Icon(icon, size: 20, color: AppColors.emerald),
+              Icon(icon, size: 20, color: palette.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -416,27 +552,21 @@ class _SettingRow extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.inkMuted,
-                      ),
+                      style: TextStyle(fontSize: 12, color: palette.inkMuted),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       value,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
+                        color: palette.ink,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.inkMuted,
-              ),
+              Icon(Icons.chevron_right_rounded, color: palette.inkMuted),
             ],
           ),
         ),
@@ -452,6 +582,7 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     final NotificationSettings settings = controller.notifications;
     final bool ready = controller.notificationsReady;
 
@@ -461,21 +592,21 @@ class _NotificationCard extends StatelessWidget {
         children: <Widget>[
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            secondary: const Icon(
+            secondary: Icon(
               Icons.notifications_active_outlined,
-              color: AppColors.emerald,
+              color: palette.primary,
             ),
-            title: const Text(
+            title: Text(
               'Prayer reminders',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.ink,
+                color: palette.ink,
               ),
             ),
-            subtitle: const Text(
+            subtitle: Text(
               'Adhan notification at each prayer time',
-              style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
+              style: TextStyle(fontSize: 12, color: palette.inkMuted),
             ),
             value: settings.enabled,
             onChanged: controller.setNotificationsEnabled,
@@ -489,11 +620,11 @@ class _NotificationCard extends StatelessWidget {
                   secondary: Icon(
                     prayer.icon,
                     size: 20,
-                    color: AppColors.emerald,
+                    color: palette.primary,
                   ),
                   title: Text(
                     prayer.label,
-                    style: const TextStyle(fontSize: 14, color: AppColors.ink),
+                    style: TextStyle(fontSize: 14, color: palette.ink),
                   ),
                   value: settings.isEnabledFor(prayer),
                   onChanged: (_) => controller.togglePrayerNotification(prayer),
@@ -516,7 +647,7 @@ class _NotificationCard extends StatelessWidget {
                 onPressed: controller.sendTestNotification,
                 icon: const Icon(Icons.notifications_none_rounded, size: 18),
                 label: const Text('Send test notification'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.emerald),
+                style: TextButton.styleFrom(foregroundColor: palette.label),
               ),
             ),
           ],
@@ -539,30 +670,31 @@ class _NotificationWarning extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.warning_amber_rounded,
             size: 18,
-            color: AppColors.goldDark,
+            color: palette.accentDark,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.inkMuted,
+                color: palette.inkMuted,
                 height: 1.35,
               ),
             ),
           ),
           TextButton(
             onPressed: onAction,
-            style: TextButton.styleFrom(foregroundColor: AppColors.goldDark),
+            style: TextButton.styleFrom(foregroundColor: palette.accentDark),
             child: Text(actionLabel),
           ),
         ],
@@ -584,22 +716,23 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Row(
       children: <Widget>[
-        Icon(icon, size: 20, color: AppColors.emerald),
+        Icon(icon, size: 20, color: palette.primary),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(fontSize: 14, color: AppColors.ink),
+            style: TextStyle(fontSize: 14, color: palette.ink),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: AppColors.inkMuted,
+            color: palette.inkMuted,
           ),
         ),
       ],

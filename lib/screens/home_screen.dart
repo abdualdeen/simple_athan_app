@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
+import '../controllers/theme_controller.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/home_header.dart';
@@ -12,9 +13,14 @@ import 'manual_location_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.controller});
+  const HomeScreen({
+    super.key,
+    required this.controller,
+    required this.themeController,
+  });
 
   final PrayerTimesController controller;
+  final ThemeController themeController;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -47,8 +53,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _openSettings() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) =>
-            SettingsScreen(controller: widget.controller),
+        builder: (BuildContext context) => SettingsScreen(
+          controller: widget.controller,
+          themeController: widget.themeController,
+        ),
       ),
     );
   }
@@ -65,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _showLocationSheet() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.cream,
+      backgroundColor: context.palette.background,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -94,7 +102,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         return Scaffold(
           key: _scaffoldKey,
-          drawer: AppDrawer(controller: controller),
+          drawer: AppDrawer(
+            controller: controller,
+            themeController: widget.themeController,
+          ),
           body: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -149,8 +160,9 @@ class _StartupView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.emeraldDeep,
+      backgroundColor: palette.primaryDeep,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -159,35 +171,35 @@ class _StartupView extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.16),
+                color: palette.accent.withValues(alpha: 0.16),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppColors.gold.withValues(alpha: 0.5),
+                  color: palette.accent.withValues(alpha: 0.5),
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.nightlight_round,
-                color: AppColors.goldSoft,
+                color: palette.accentSoft,
                 size: 34,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Athan',
               style: TextStyle(
-                color: Colors.white,
+                color: palette.onPrimary,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
               ),
             ),
             const SizedBox(height: 24),
-            const SizedBox(
+            SizedBox(
               width: 22,
               height: 22,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.goldSoft),
+                valueColor: AlwaysStoppedAnimation<Color>(palette.accentSoft),
               ),
             ),
           ],
@@ -210,22 +222,23 @@ class _LocationNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
         decoration: BoxDecoration(
-          color: AppColors.gold.withValues(alpha: 0.12),
+          color: palette.accent.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+          border: Border.all(color: palette.accent.withValues(alpha: 0.3)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Icon(
+            Icon(
               Icons.location_off_outlined,
               size: 18,
-              color: AppColors.goldDark,
+              color: palette.accentDark,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -234,26 +247,23 @@ class _LocationNotice extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     message,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
-                      color: AppColors.ink,
+                      color: palette.ink,
                       height: 1.35,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Showing times for $locationName.',
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.inkMuted,
-                    ),
+                    style: TextStyle(fontSize: 11.5, color: palette.inkMuted),
                   ),
                 ],
               ),
             ),
             TextButton(
               onPressed: onRetry,
-              style: TextButton.styleFrom(foregroundColor: AppColors.goldDark),
+              style: TextButton.styleFrom(foregroundColor: palette.accentDark),
               child: const Text('Retry'),
             ),
           ],
@@ -271,21 +281,18 @@ class _CalculationNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
         decoration: BoxDecoration(
-          color: AppColors.emerald.withValues(alpha: 0.05),
+          color: palette.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: <Widget>[
-            const Icon(
-              Icons.info_outline_rounded,
-              size: 17,
-              color: AppColors.emerald,
-            ),
+            Icon(Icons.info_outline_rounded, size: 17, color: palette.primary),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -297,7 +304,7 @@ class _CalculationNote extends StatelessWidget {
             ),
             TextButton(
               onPressed: onTap,
-              style: TextButton.styleFrom(foregroundColor: AppColors.emerald),
+              style: TextButton.styleFrom(foregroundColor: palette.label),
               child: const Text('Change'),
             ),
           ],
@@ -320,6 +327,7 @@ class _LocationSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return SafeArea(
       child: ListenableBuilder(
         listenable: controller,
@@ -336,18 +344,18 @@ class _LocationSheet extends StatelessWidget {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.inkMuted.withValues(alpha: 0.3),
+                        color: palette.inkMuted.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text(
+                  Text(
                     'Location',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+                      color: palette.ink,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -357,12 +365,12 @@ class _LocationSheet extends StatelessWidget {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: palette.surface,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.location_on_outlined,
-                          color: AppColors.emerald,
+                          color: palette.primary,
                           size: 22,
                         ),
                       ),
@@ -373,18 +381,18 @@ class _LocationSheet extends StatelessWidget {
                           children: <Widget>[
                             Text(
                               controller.location.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.ink,
+                                color: palette.ink,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               controller.location.coordinatesLabel,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.inkMuted,
+                                color: palette.inkMuted,
                               ),
                             ),
                           ],
@@ -396,9 +404,9 @@ class _LocationSheet extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       controller.locationError!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: Color(0xFFB3261E),
+                        color: palette.error,
                         height: 1.35,
                       ),
                     ),
@@ -411,13 +419,13 @@ class _LocationSheet extends StatelessWidget {
                           ? null
                           : controller.refreshLocation,
                       icon: controller.isLocating
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                                  palette.onPrimary,
                                 ),
                               ),
                             )
@@ -428,8 +436,8 @@ class _LocationSheet extends StatelessWidget {
                             : 'Update from device',
                       ),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.emerald,
-                        foregroundColor: Colors.white,
+                        backgroundColor: palette.primary,
+                        foregroundColor: palette.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -448,9 +456,9 @@ class _LocationSheet extends StatelessWidget {
                       ),
                       label: const Text('Enter location manually'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.emerald,
+                        foregroundColor: palette.label,
                         side: BorderSide(
-                          color: AppColors.emerald.withValues(alpha: 0.3),
+                          color: palette.label.withValues(alpha: 0.35),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -467,7 +475,7 @@ class _LocationSheet extends StatelessWidget {
                       icon: const Icon(Icons.tune_rounded, size: 18),
                       label: const Text('Calculation settings'),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.emerald,
+                        foregroundColor: palette.label,
                       ),
                     ),
                   ),

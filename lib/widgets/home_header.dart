@@ -24,26 +24,25 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     final HijriDate hijri = HijriDate.fromDateTime(date);
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[
-            AppColors.emeraldSoft,
-            AppColors.emerald,
-            AppColors.emeraldDeep,
-          ],
+          colors: palette.headerGradient,
         ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: Stack(
         children: <Widget>[
           Positioned.fill(
             child: IgnorePointer(
-              child: CustomPaint(painter: _HeaderPatternPainter()),
+              child: CustomPaint(
+                painter: _HeaderPatternPainter(color: palette.accent),
+              ),
             ),
           ),
           SafeArea(
@@ -74,10 +73,10 @@ class HomeHeader extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 26),
-                  const Text(
+                  Text(
                     'Assalamu Alaikum',
                     style: TextStyle(
-                      color: AppColors.goldSoft,
+                      color: palette.accentSoft,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 2.4,
@@ -90,8 +89,8 @@ class HomeHeader extends StatelessWidget {
                     child: Text(
                       formatGregorianDate(date),
                       maxLines: 1,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: palette.onPrimary,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         height: 1.2,
@@ -101,17 +100,17 @@ class HomeHeader extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: <Widget>[
-                      const Icon(
+                      Icon(
                         Icons.nightlight_round,
                         size: 14,
-                        color: AppColors.goldSoft,
+                        color: palette.accentSoft,
                       ),
                       const SizedBox(width: 7),
                       Flexible(
                         child: Text(
                           hijri.formatted,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.82),
+                            color: palette.onPrimary.withValues(alpha: 0.82),
                             fontSize: 13.5,
                             fontWeight: FontWeight.w500,
                           ),
@@ -142,17 +141,18 @@ class _RoundIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: palette.onPrimary.withValues(alpha: 0.12),
         shape: const CircleBorder(),
         child: InkWell(
           onTap: onTap,
           customBorder: const CircleBorder(),
           child: Padding(
             padding: const EdgeInsets.all(10),
-            child: Icon(icon, color: Colors.white, size: 22),
+            child: Icon(icon, color: palette.onPrimary, size: 22),
           ),
         ),
       ),
@@ -173,8 +173,9 @@ class _LocationPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Material(
-      color: Colors.white.withValues(alpha: 0.12),
+      color: palette.onPrimary.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -184,10 +185,10 @@ class _LocationPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.location_on_outlined,
                 size: 16,
-                color: AppColors.goldSoft,
+                color: palette.accentSoft,
               ),
               const SizedBox(width: 6),
               Flexible(
@@ -195,8 +196,8 @@ class _LocationPill extends StatelessWidget {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: palette.onPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -204,13 +205,13 @@ class _LocationPill extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               if (isLocating)
-                const SizedBox(
+                SizedBox(
                   width: 14,
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 1.8,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.goldSoft,
+                      palette.accentSoft,
                     ),
                   ),
                 )
@@ -218,7 +219,7 @@ class _LocationPill extends StatelessWidget {
                 Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: 18,
-                  color: Colors.white.withValues(alpha: 0.75),
+                  color: palette.onPrimary.withValues(alpha: 0.75),
                 ),
             ],
           ),
@@ -230,10 +231,14 @@ class _LocationPill extends StatelessWidget {
 
 /// Subtle crescent and star motif painted behind the header content.
 class _HeaderPatternPainter extends CustomPainter {
+  const _HeaderPatternPainter({required this.color});
+
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint()
-      ..color = AppColors.gold.withValues(alpha: 0.10)
+      ..color = color.withValues(alpha: 0.10)
       ..style = PaintingStyle.fill;
 
     final Path outer = Path()
@@ -256,7 +261,7 @@ class _HeaderPatternPainter extends CustomPainter {
     );
 
     final Paint starPaint = Paint()
-      ..color = AppColors.gold.withValues(alpha: 0.22)
+      ..color = color.withValues(alpha: 0.22)
       ..style = PaintingStyle.fill;
 
     _drawSparkle(
@@ -312,5 +317,6 @@ class _HeaderPatternPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _HeaderPatternPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _HeaderPatternPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

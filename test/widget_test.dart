@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:athan_app/app.dart';
 import 'package:athan_app/controllers/prayer_times_controller.dart';
+import 'package:athan_app/controllers/theme_controller.dart';
 import 'package:athan_app/models/app_location.dart';
 import 'package:athan_app/models/notification_settings.dart';
 import 'package:athan_app/models/prayer.dart';
@@ -36,6 +37,7 @@ class _FakeLocationService implements LocationService {
 class _InMemorySettingsStore implements SettingsStore {
   PrayerSettings settings = const PrayerSettings();
   NotificationSettings notificationSettings = const NotificationSettings();
+  AppThemeChoice theme = AppThemeChoice.emerald;
   AppLocation? location;
 
   @override
@@ -57,6 +59,12 @@ class _InMemorySettingsStore implements SettingsStore {
   @override
   Future<void> saveNotificationSettings(NotificationSettings value) async =>
       notificationSettings = value;
+
+  @override
+  Future<AppThemeChoice> loadTheme() async => theme;
+
+  @override
+  Future<void> saveTheme(AppThemeChoice value) async => theme = value;
 }
 
 class _FakeLocationSearchService implements LocationSearchService {
@@ -131,6 +139,7 @@ Future<
     PrayerTimesController controller,
     _FakeNotificationService fake,
     _FakeLocationSearchService search,
+    ThemeController themeController,
   })
 >
 _createController({
@@ -141,15 +150,23 @@ _createController({
   final _FakeLocationSearchService search = _FakeLocationSearchService(
     searchResults,
   );
+  final _InMemorySettingsStore store = _InMemorySettingsStore();
   final PrayerTimesController controller = PrayerTimesController(
     locationService: const _FakeLocationService(_london),
-    settingsStore: _InMemorySettingsStore(),
+    settingsStore: store,
     notificationService: fake,
     locationSearchService: search,
     clock: () => now,
   );
+  final ThemeController themeController = ThemeController(settingsStore: store);
   await controller.initialize();
-  return (controller: controller, fake: fake, search: search);
+  await themeController.initialize();
+  return (
+    controller: controller,
+    fake: fake,
+    search: search,
+    themeController: themeController,
+  );
 }
 
 void main() {
@@ -159,7 +176,9 @@ void main() {
     final result = await _createController();
     final PrayerTimesController controller = result.controller;
 
-    await tester.pumpWidget(AthanApp(controller: controller));
+    await tester.pumpWidget(
+      AthanApp(controller: controller, themeController: result.themeController),
+    );
     await tester.pump();
 
     expect(find.text('London, United Kingdom'), findsOneWidget);
@@ -180,7 +199,9 @@ void main() {
     final result = await _createController();
     final PrayerTimesController controller = result.controller;
 
-    await tester.pumpWidget(AthanApp(controller: controller));
+    await tester.pumpWidget(
+      AthanApp(controller: controller, themeController: result.themeController),
+    );
     await tester.pump();
 
     await tester.tap(find.byIcon(Icons.menu_rounded));
@@ -213,7 +234,9 @@ void main() {
     final PrayerTimesController controller = result.controller;
     final _FakeNotificationService fake = result.fake;
 
-    await tester.pumpWidget(AthanApp(controller: controller));
+    await tester.pumpWidget(
+      AthanApp(controller: controller, themeController: result.themeController),
+    );
     await tester.pump();
 
     expect(
@@ -331,7 +354,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: SettingsScreen(controller: controller),
+        home: SettingsScreen(
+          controller: controller,
+          themeController: result.themeController,
+        ),
       ),
     );
     await tester.pump();
@@ -347,5 +373,50 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
+  });
+
+  testWidgets('settings can change the theme', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+    final ThemeController themeController = result.themeController;
+
+    await tester.pumpWidget(
+      ListenableBuilder(
+        listenable: themeController,
+        builder: (BuildContext context, Widget? _) => MaterialApp(
+          theme: AppTheme.forChoice(themeController.choice),
+          home: SettingsScreen(
+            controller: controller,
+            themeController: themeController,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Emerald'), findsOneWidget);
+
+    await tester.tap(find.text('Theme'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Sakura'), findsOneWidget);
+    await tester.tap(find.text('Sakura'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(themeController.choice, AppThemeChoice.sakura);
+    final BuildContext settingsContext = tester.element(
+      find.byType(SettingsScreen),
+    );
+    expect(settingsContext.palette.primary, AppPalettes.sakura.primary);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+    themeController.dispose();
   });
 }

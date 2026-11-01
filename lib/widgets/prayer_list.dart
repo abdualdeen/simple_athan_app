@@ -79,23 +79,24 @@ class _PrayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color titleColor = isNext ? Colors.white : AppColors.ink;
+    final AppPalette palette = context.palette;
+    final Color titleColor = isNext ? palette.onPrimary : palette.ink;
     final Color subtitleColor = isNext
-        ? Colors.white.withValues(alpha: 0.7)
-        : AppColors.inkMuted;
+        ? palette.onPrimary.withValues(alpha: 0.7)
+        : palette.inkMuted;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
-        color: isNext ? AppColors.emerald : AppColors.surface,
+        color: isNext ? palette.primary : palette.surface,
         borderRadius: BorderRadius.circular(18),
         border: isNext
             ? null
-            : Border.all(color: AppColors.emerald.withValues(alpha: 0.07)),
+            : Border.all(color: palette.primary.withValues(alpha: 0.07)),
         boxShadow: isNext
             ? <BoxShadow>[
                 BoxShadow(
-                  color: AppColors.emerald.withValues(alpha: 0.25),
+                  color: palette.primary.withValues(alpha: 0.25),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -109,14 +110,14 @@ class _PrayerTile extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               color: isNext
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : AppColors.cream,
+                  ? palette.onPrimary.withValues(alpha: 0.12)
+                  : palette.background,
               borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
               prayer.icon,
               size: 20,
-              color: isNext ? AppColors.goldSoft : AppColors.emerald,
+              color: isNext ? palette.accentSoft : palette.primary,
             ),
           ),
           const SizedBox(width: 12),
@@ -153,16 +154,16 @@ class _PrayerTile extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.gold,
+                          color: palette.accent,
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Text(
+                        child: Text(
                           'NEXT',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.8,
-                            color: AppColors.emeraldDeep,
+                            color: palette.primaryDeep,
                           ),
                         ),
                       ),
@@ -205,7 +206,7 @@ class _PrayerTile extends StatelessWidget {
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               padding: EdgeInsets.zero,
               iconSize: 19,
-              color: isNext ? AppColors.goldSoft : AppColors.inkMuted,
+              color: isNext ? palette.accentSoft : palette.inkMuted,
               icon: Icon(
                 isMuted
                     ? Icons.notifications_off_outlined

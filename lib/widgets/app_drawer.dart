@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
+import '../controllers/theme_controller.dart';
 import '../screens/settings_screen.dart';
 import '../theme/app_theme.dart';
 
 /// Side menu with the app's main destinations.
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key, required this.controller});
+  const AppDrawer({
+    super.key,
+    required this.controller,
+    required this.themeController,
+  });
 
   final PrayerTimesController controller;
+  final ThemeController themeController;
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Drawer(
-      backgroundColor: AppColors.cream,
+      backgroundColor: palette.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.horizontal(right: Radius.circular(28)),
       ),
@@ -54,13 +61,13 @@ class AppDrawer extends StatelessWidget {
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
             child: Text(
               'Athan • v1.0.0',
               style: TextStyle(
                 fontSize: 11,
-                color: AppColors.inkMuted,
+                color: palette.inkMuted,
                 letterSpacing: 1,
               ),
             ),
@@ -75,8 +82,10 @@ class AppDrawer extends StatelessWidget {
     navigator.pop();
     navigator.push(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) =>
-            SettingsScreen(controller: controller),
+        builder: (BuildContext context) => SettingsScreen(
+          controller: controller,
+          themeController: themeController,
+        ),
       ),
     );
   }
@@ -93,15 +102,16 @@ class _DrawerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[AppColors.emeraldSoft, AppColors.emeraldDeep],
+          colors: <Color>[palette.primarySoft, palette.primaryDeep],
         ),
-        borderRadius: BorderRadius.only(bottomRight: Radius.circular(28)),
+        borderRadius: const BorderRadius.only(bottomRight: Radius.circular(28)),
       ),
       child: SafeArea(
         bottom: false,
@@ -114,23 +124,23 @@ class _DrawerHeader extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withValues(alpha: 0.16),
+                  color: palette.accent.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.gold.withValues(alpha: 0.5),
+                    color: palette.accent.withValues(alpha: 0.5),
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.nightlight_round,
-                  color: AppColors.goldSoft,
+                  color: palette.accentSoft,
                   size: 26,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Athan',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: palette.onPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
@@ -140,7 +150,7 @@ class _DrawerHeader extends StatelessWidget {
               Text(
                 'Prayer times & Qibla',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: palette.onPrimary.withValues(alpha: 0.7),
                   fontSize: 13,
                 ),
               ),
@@ -169,11 +179,12 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: selected
-            ? AppColors.emerald.withValues(alpha: 0.08)
+            ? palette.primary.withValues(alpha: 0.08)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
@@ -186,7 +197,7 @@ class _DrawerItem extends StatelessWidget {
                 Icon(
                   icon,
                   size: 21,
-                  color: selected ? AppColors.emerald : AppColors.inkMuted,
+                  color: selected ? palette.primary : palette.inkMuted,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -195,7 +206,7 @@ class _DrawerItem extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      color: selected ? AppColors.emerald : AppColors.ink,
+                      color: selected ? palette.primary : palette.ink,
                     ),
                   ),
                 ),
@@ -206,16 +217,16 @@ class _DrawerItem extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.gold.withValues(alpha: 0.14),
+                      color: palette.accent.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Soon',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.4,
-                        color: AppColors.goldDark,
+                        color: palette.accentDark,
                       ),
                     ),
                   ),

@@ -14,6 +14,7 @@ class NextPrayerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     final PrayerTime next = day.next;
     final PrayerTime previous = day.previous;
     final Duration remaining = next.time.difference(now);
@@ -24,11 +25,11 @@ class NextPrayerCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: AppColors.emerald.withValues(alpha: 0.18),
+            color: palette.primary.withValues(alpha: 0.18),
             blurRadius: 28,
             offset: const Offset(0, 14),
           ),
@@ -43,12 +44,12 @@ class NextPrayerCard extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: <Color>[AppColors.emeraldSoft, AppColors.emerald],
+                  gradient: LinearGradient(
+                    colors: <Color>[palette.primarySoft, palette.primary],
                   ),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: Icon(next.icon, color: AppColors.goldSoft, size: 22),
+                child: Icon(next.icon, color: palette.accentSoft, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -58,7 +59,7 @@ class NextPrayerCard extends StatelessWidget {
                     Text(
                       'NEXT PRAYER',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.goldDark,
+                        color: palette.accentDark,
                         letterSpacing: 1.6,
                       ),
                     ),
@@ -69,9 +70,9 @@ class NextPrayerCard extends StatelessWidget {
                     ),
                     Text(
                       formatClockTime(next.time),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.inkMuted,
+                        color: palette.inkMuted,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -83,11 +84,13 @@ class NextPrayerCard extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     formatCountdown(remaining),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.emerald,
-                      fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
+                      color: palette.label,
+                      fontFeatures: const <FontFeature>[
+                        FontFeature.tabularFigures(),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -106,10 +109,8 @@ class NextPrayerCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 6,
-              backgroundColor: AppColors.cream,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                AppColors.emerald,
-              ),
+              backgroundColor: palette.background,
+              valueColor: AlwaysStoppedAnimation<Color>(palette.primary),
             ),
           ),
           const SizedBox(height: 8),
@@ -117,12 +118,12 @@ class NextPrayerCard extends StatelessWidget {
             children: <Widget>[
               Text(
                 '${previous.label} ${formatClockTime(previous.time)}',
-                style: _captionStyle,
+                style: _captionStyle(palette),
               ),
               const Spacer(),
               Text(
                 '${next.label} ${formatClockTime(next.time)}',
-                style: _captionStyle,
+                style: _captionStyle(palette),
               ),
             ],
           ),
@@ -131,9 +132,9 @@ class NextPrayerCard extends StatelessWidget {
     );
   }
 
-  static const TextStyle _captionStyle = TextStyle(
+  TextStyle _captionStyle(AppPalette palette) => TextStyle(
     fontSize: 11,
-    color: AppColors.inkMuted,
+    color: palette.inkMuted,
     fontWeight: FontWeight.w500,
   );
 }

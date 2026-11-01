@@ -83,11 +83,12 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: palette.background,
       appBar: AppBar(
-        backgroundColor: AppColors.emerald,
-        foregroundColor: Colors.white,
+        backgroundColor: palette.primary,
+        foregroundColor: palette.onPrimary,
         elevation: 0,
         title: const Text(
           'Enter location',
@@ -104,18 +105,20 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
             textInputAction: TextInputAction.search,
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _search(),
+            style: TextStyle(color: palette.ink),
             decoration: InputDecoration(
               hintText: 'City, country or coordinates',
-              prefixIcon: const Icon(Icons.search_rounded),
+              hintStyle: TextStyle(color: palette.inkMuted),
+              prefixIcon: Icon(Icons.search_rounded, color: palette.inkMuted),
               suffixIcon: _queryController.text.isEmpty
                   ? null
                   : IconButton(
                       onPressed: _clear,
                       tooltip: 'Clear',
-                      icon: const Icon(Icons.close_rounded),
+                      icon: Icon(Icons.close_rounded, color: palette.inkMuted),
                     ),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: palette.surface,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 16,
@@ -127,22 +130,19 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: AppColors.emerald.withValues(alpha: 0.12),
+                  color: palette.primary.withValues(alpha: 0.12),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: AppColors.emerald,
-                  width: 1.4,
-                ),
+                borderSide: BorderSide(color: palette.primary, width: 1.4),
               ),
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Examples: London, United Kingdom · 51.5074, -0.1278',
-            style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
+            style: TextStyle(fontSize: 12, color: palette.inkMuted),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -150,19 +150,21 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
             child: FilledButton.icon(
               onPressed: _isSearching ? null : _search,
               icon: _isSearching
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          palette.onPrimary,
+                        ),
                       ),
                     )
                   : const Icon(Icons.search_rounded, size: 18),
               label: Text(_isSearching ? 'Searching…' : 'Search'),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.emerald,
-                foregroundColor: Colors.white,
+                backgroundColor: palette.primary,
+                foregroundColor: palette.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -175,27 +177,27 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.12),
+                color: palette.accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.gold.withValues(alpha: 0.3),
+                  color: palette.accent.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const Icon(
+                  Icon(
                     Icons.info_outline_rounded,
                     size: 18,
-                    color: AppColors.goldDark,
+                    color: palette.accentDark,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       _error!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: AppColors.ink,
+                        color: palette.ink,
                         height: 1.35,
                       ),
                     ),
@@ -206,13 +208,13 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
           ],
           if (_results.isNotEmpty) ...<Widget>[
             const SizedBox(height: 22),
-            const Text(
+            Text(
               'RESULTS',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.4,
-                color: AppColors.inkMuted,
+                color: palette.inkMuted,
               ),
             ),
             const SizedBox(height: 8),
@@ -220,7 +222,7 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Material(
-                  color: AppColors.surface,
+                  color: palette.surface,
                   borderRadius: BorderRadius.circular(16),
                   clipBehavior: Clip.antiAlias,
                   child: ListTile(
@@ -228,33 +230,30 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.cream,
+                        color: palette.background,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.location_on_outlined,
-                        color: AppColors.emerald,
+                        color: palette.primary,
                         size: 20,
                       ),
                     ),
                     title: Text(
                       location.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
+                        color: palette.ink,
                       ),
                     ),
                     subtitle: Text(
                       location.coordinatesLabel,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.inkMuted,
-                      ),
+                      style: TextStyle(fontSize: 12, color: palette.inkMuted),
                     ),
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.chevron_right_rounded,
-                      color: AppColors.inkMuted,
+                      color: palette.inkMuted,
                     ),
                     onTap: () => _select(location),
                   ),
