@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
 import '../controllers/theme_controller.dart';
+import '../screens/qibla_screen.dart';
 import '../screens/settings_screen.dart';
 import '../theme/app_theme.dart';
 
@@ -46,7 +47,8 @@ class AppDrawer extends StatelessWidget {
                 _DrawerItem(
                   icon: Icons.explore_outlined,
                   label: 'Qibla Direction',
-                  onTap: () => _showComingSoon(context, 'Qibla direction'),
+                  comingSoon: false,
+                  onTap: () => _openQibla(context),
                 ),
                 _DrawerItem(
                   icon: Icons.notifications_outlined,
@@ -73,6 +75,16 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openQibla(BuildContext context) {
+    final NavigatorState navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => QiblaScreen(controller: controller),
       ),
     );
   }

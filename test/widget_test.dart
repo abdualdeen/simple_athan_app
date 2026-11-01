@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -10,13 +12,16 @@ import 'package:athan_app/models/prayer.dart';
 import 'package:athan_app/models/prayer_notification.dart';
 import 'package:athan_app/models/prayer_settings.dart';
 import 'package:athan_app/screens/manual_location_screen.dart';
+import 'package:athan_app/screens/qibla_screen.dart';
 import 'package:athan_app/screens/settings_screen.dart';
+import 'package:athan_app/services/compass_service.dart';
 import 'package:athan_app/services/location_search_service.dart';
 import 'package:athan_app/services/location_service.dart';
 import 'package:athan_app/services/notification_service.dart';
 import 'package:athan_app/services/prayer_times_service.dart';
 import 'package:athan_app/services/settings_store.dart';
 import 'package:athan_app/theme/app_theme.dart';
+import 'package:athan_app/utils/qibla.dart';
 
 const AppLocation _london = AppLocation(
   name: 'London, United Kingdom',
@@ -78,6 +83,15 @@ class _FakeLocationSearchService implements LocationSearchService {
     lastQuery = query;
     return results;
   }
+}
+
+class _FakeCompassService implements CompassService {
+  _FakeCompassService(this.controller);
+
+  final StreamController<CompassReading> controller;
+
+  @override
+  Stream<CompassReading> headingStream() => controller.stream;
 }
 
 class _FakeNotificationService implements NotificationService {
@@ -372,6 +386,47 @@ void main() {
     expect(fake.cancelled, isTrue);
 
     await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
+  testWidgets('qibla screen shows the bearing and reacts to the compass', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+    final StreamController<CompassReading> compassController =
+        StreamController<CompassReading>.broadcast();
+    final _FakeCompassService compass = _FakeCompassService(compassController);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: QiblaScreen(controller: controller, compassService: compass),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Qibla'), findsOneWidget);
+    expect(find.text('119°'), findsOneWidget);
+    expect(find.text('Waiting for the compass…'), findsOneWidget);
+
+    compassController.add(const CompassReading(heading: 0));
+    await tester.pump();
+    await tester.pump();
+    expect(
+      find.text('Turn your phone until the Kaaba marker is at the top.'),
+      findsOneWidget,
+    );
+
+    compassController.add(
+      CompassReading(heading: qiblaBearing(controller.location)),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('You are facing the Qibla.'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await compassController.close();
     controller.dispose();
   });
 
