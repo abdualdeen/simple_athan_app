@@ -3,22 +3,30 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/app_location.dart';
+import '../models/notification_settings.dart';
+import '../models/prayer.dart';
+import '../models/prayer_notification.dart';
 import '../models/prayer_schedule.dart';
 import '../models/prayer_settings.dart';
 import '../services/location_service.dart';
+import '../services/notification_service.dart';
+import '../services/prayer_notification_builder.dart';
 import '../services/prayer_times_service.dart';
 import '../services/settings_store.dart';
 
-/// Owns the app's location, calculation settings, and the current prayer day.
+/// Owns the app's location, calculation settings, notifications, and the
+/// current prayer day.
 class PrayerTimesController extends ChangeNotifier {
   PrayerTimesController({
     required LocationService locationService,
     required SettingsStore settingsStore,
+    required NotificationService notificationService,
     PrayerTimesService prayerTimesService = const PrayerTimesService(),
     DateTime Function()? clock,
   }) : this._(
          locationService,
          settingsStore,
+         notificationService,
          prayerTimesService,
          clock ?? DateTime.now,
        );
@@ -26,20 +34,27 @@ class PrayerTimesController extends ChangeNotifier {
   PrayerTimesController._(
     this._locationService,
     this._settingsStore,
+    this._notificationService,
     this._prayerTimesService,
     this._clock,
   ) : _now = _clock();
 
   final LocationService _locationService;
   final SettingsStore _settingsStore;
+  final NotificationService _notificationService;
   final PrayerTimesService _prayerTimesService;
   final DateTime Function() _clock;
 
   AppLocation _location = AppLocation.makkah;
   PrayerSettings _settings = const PrayerSettings();
+  NotificationSettings _notifications = const NotificationSettings();
   PrayerDay? _day;
   bool _isInitializing = true;
   bool _isLocating = false;
+  bool _notificationsReady = false;
+  bool _exactAlarmsAllowed = false;
+  bool _isSyncingNotifications = false;
+  bool _syncPending = false;
   String? _locationError;
   Timer? _ticker;
   DateTime _now;
@@ -48,9 +63,12 @@ class PrayerTimesController extends ChangeNotifier {
   DateTime get now => _now;
   AppLocation get location => _location;
   PrayerSettings get settings => _settings;
+  NotificationSettings get notifications => _notifications;
   PrayerDay get day => _day ??= _computeDay();
   bool get isInitializing => _isInitializing;
   bool get isLocating => _isLocating;
+  bool get notificationsReady => _notificationsReady;
+  bool get exactAlarmsAllowed => _exactAlarmsAllowed;
   String? get locationError => _locationError;
 
   /// Loads saved settings and location, then asks the device for a fresh
@@ -58,18 +76,23 @@ class PrayerTimesController extends ChangeNotifier {
   Future<void> initialize() async {
     try {
       _settings = await _settingsStore.loadSettings();
+      _notifications = await _settingsStore.loadNotificationSettings();
       final AppLocation? savedLocation = await _settingsStore.loadLocation();
       if (savedLocation != null) _location = savedLocation;
-      _isInitializing = false;
-      _day = null;
-      _notify();
-      _startTicker();
-      if (savedLocation == null) await refreshLocation();
     } catch (error) {
       debugPrint('Failed to load saved settings: $error');
-      _isInitializing = false;
-      _notify();
-      _startTicker();
+    }
+
+    _isInitializing = false;
+    _day = null;
+    _notify();
+    _startTicker();
+
+    await _prepareNotifications();
+
+    if (_location.isDeviceLocation) {
+      await syncNotifications();
+    } else {
       await refreshLocation();
     }
   }
@@ -94,6 +117,8 @@ class PrayerTimesController extends ChangeNotifier {
       _isLocating = false;
       _notify();
     }
+
+    await syncNotifications();
   }
 
   Future<void> updateSettings(PrayerSettings settings) async {
@@ -101,6 +126,115 @@ class PrayerTimesController extends ChangeNotifier {
     _day = null;
     _notify();
     await _settingsStore.saveSettings(settings);
+    await syncNotifications();
+  }
+
+  Future<void> togglePrayerNotification(PrayerId id) async {
+    _notifications = _notifications.togglePrayer(id);
+    _notify();
+    await _settingsStore.saveNotificationSettings(_notifications);
+    await syncNotifications();
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    _notifications = _notifications.copyWith(enabled: enabled);
+    _notify();
+    await _settingsStore.saveNotificationSettings(_notifications);
+
+    if (!enabled) {
+      await _notificationService.cancelAll();
+      return;
+    }
+    if (!_notificationsReady) {
+      await requestNotificationPermission();
+    } else {
+      await syncNotifications();
+    }
+  }
+
+  Future<bool> requestNotificationPermission() async {
+    try {
+      _notificationsReady = await _notificationService.requestPermission();
+      _exactAlarmsAllowed = await _notificationService
+          .canScheduleExactNotifications();
+    } catch (error) {
+      debugPrint('Notification permission request failed: $error');
+      _notificationsReady = false;
+    }
+    _notify();
+    if (_notificationsReady) await syncNotifications();
+    return _notificationsReady;
+  }
+
+  Future<void> requestExactAlarms() async {
+    try {
+      _exactAlarmsAllowed = await _notificationService
+          .requestExactAlarmsPermission();
+    } catch (error) {
+      debugPrint('Exact alarm permission request failed: $error');
+    }
+    _notify();
+    await syncNotifications();
+  }
+
+  Future<void> sendTestNotification() async {
+    if (!_notificationsReady) {
+      final bool granted = await requestNotificationPermission();
+      if (!granted) return;
+    }
+    try {
+      await _notificationService.showTestNotification();
+    } catch (error) {
+      debugPrint('Test notification failed: $error');
+    }
+  }
+
+  /// Rebuilds the rolling window of scheduled prayer reminders.
+  Future<void> syncNotifications() async {
+    if (_disposed || !_notificationsReady || !_location.isDeviceLocation) {
+      return;
+    }
+    if (_isSyncingNotifications) {
+      _syncPending = true;
+      return;
+    }
+
+    _isSyncingNotifications = true;
+    try {
+      do {
+        _syncPending = false;
+        final List<PrayerNotification> notifications =
+            PrayerNotificationBuilder.build(
+              now: _now,
+              location: _location,
+              settings: _settings,
+              notificationSettings: _notifications,
+              prayerTimesService: _prayerTimesService,
+            );
+        await _notificationService.schedulePrayerNotifications(
+          notifications: notifications,
+        );
+      } while (_syncPending);
+    } catch (error) {
+      debugPrint('Could not schedule prayer notifications: $error');
+    } finally {
+      _isSyncingNotifications = false;
+    }
+  }
+
+  Future<void> _prepareNotifications() async {
+    try {
+      await _notificationService.initialize();
+      if (_notifications.enabled) {
+        _notificationsReady = await _notificationService.requestPermission();
+        _exactAlarmsAllowed = await _notificationService
+            .canScheduleExactNotifications();
+      }
+    } catch (error) {
+      debugPrint('Notification setup failed: $error');
+      _notificationsReady = false;
+    }
+    _notify();
   }
 
   PrayerDay _computeDay() => _prayerTimesService.dayFor(
@@ -119,7 +253,10 @@ class PrayerTimesController extends ChangeNotifier {
           next.month != _now.month ||
           next.day != _now.day;
       _now = next;
-      if (dateChanged) _day = null;
+      if (dateChanged) {
+        _day = null;
+        unawaited(syncNotifications());
+      }
       _notify();
     });
   }

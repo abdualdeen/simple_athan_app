@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
-import '../models/prayer.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/home_header.dart';
@@ -18,14 +19,28 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final Set<PrayerId> _muted = <PrayerId>{};
 
-  void _toggleMute(PrayerId id) {
-    setState(() {
-      if (!_muted.add(id)) _muted.remove(id);
-    });
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh the rolling notification window and pick up permission
+      // changes made in the system settings.
+      unawaited(widget.controller.syncNotifications());
+    }
   }
 
   void _openSettings() {
@@ -99,8 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 PrayerList(
                   day: controller.day,
-                  muted: _muted,
-                  onToggleMute: _toggleMute,
+                  muted: controller.notifications.muted,
+                  onToggleMute: controller.togglePrayerNotification,
                 ),
                 const SizedBox(height: 12),
                 _CalculationNote(controller: controller, onTap: _openSettings),

@@ -1,6 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_location.dart';
+import '../models/notification_settings.dart';
+import '../models/prayer.dart';
 import '../models/prayer_settings.dart';
 
 abstract interface class SettingsStore {
@@ -8,6 +10,8 @@ abstract interface class SettingsStore {
   Future<void> saveSettings(PrayerSettings settings);
   Future<AppLocation?> loadLocation();
   Future<void> saveLocation(AppLocation location);
+  Future<NotificationSettings> loadNotificationSettings();
+  Future<void> saveNotificationSettings(NotificationSettings settings);
 }
 
 class SharedPreferencesSettingsStore implements SettingsStore {
@@ -16,6 +20,8 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   static const String _locationNameKey = 'location_name';
   static const String _locationLatitudeKey = 'location_latitude';
   static const String _locationLongitudeKey = 'location_longitude';
+  static const String _notificationsEnabledKey = 'notifications_enabled';
+  static const String _mutedPrayersKey = 'muted_prayers';
 
   @override
   Future<PrayerSettings> loadSettings() async {
@@ -54,5 +60,26 @@ class SharedPreferencesSettingsStore implements SettingsStore {
     await prefs.setString(_locationNameKey, location.name);
     await prefs.setDouble(_locationLatitudeKey, location.latitude);
     await prefs.setDouble(_locationLongitudeKey, location.longitude);
+  }
+
+  @override
+  Future<NotificationSettings> loadNotificationSettings() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> mutedNames =
+        prefs.getStringList(_mutedPrayersKey) ?? const <String>[];
+    return NotificationSettings(
+      enabled: prefs.getBool(_notificationsEnabledKey) ?? true,
+      muted: mutedNames.map(PrayerId.fromName).whereType<PrayerId>().toSet(),
+    );
+  }
+
+  @override
+  Future<void> saveNotificationSettings(NotificationSettings settings) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notificationsEnabledKey, settings.enabled);
+    await prefs.setStringList(
+      _mutedPrayersKey,
+      settings.muted.map((PrayerId id) => id.name).toList(),
+    );
   }
 }

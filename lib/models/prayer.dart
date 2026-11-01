@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
 
-enum PrayerId { fajr, sunrise, dhuhr, asr, maghrib, isha }
+enum PrayerId {
+  fajr,
+  sunrise,
+  dhuhr,
+  asr,
+  maghrib,
+  isha;
+
+  static PrayerId? fromName(String? name) {
+    for (final PrayerId id in values) {
+      if (id.name == name) return id;
+    }
+    return null;
+  }
+}
 
 extension PrayerIdDetails on PrayerId {
   String get label => switch (this) {

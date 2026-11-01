@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
+import '../models/notification_settings.dart';
+import '../models/prayer.dart';
 import '../models/prayer_settings.dart';
 import '../theme/app_theme.dart';
 
@@ -89,6 +91,9 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 24),
+              const _SectionLabel('NOTIFICATIONS'),
+              _NotificationCard(controller: controller),
               const SizedBox(height: 24),
               const _SectionLabel('ABOUT'),
               const _SettingsCard(
@@ -241,14 +246,14 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Material(
+      color: AppColors.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.07)),
+        side: BorderSide(color: AppColors.emerald.withValues(alpha: 0.07)),
       ),
-      child: child,
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
@@ -410,6 +415,132 @@ class _SettingRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.controller});
+
+  final PrayerTimesController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final NotificationSettings settings = controller.notifications;
+    final bool ready = controller.notificationsReady;
+
+    return _SettingsCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: const Icon(
+              Icons.notifications_active_outlined,
+              color: AppColors.emerald,
+            ),
+            title: const Text(
+              'Prayer reminders',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.ink,
+              ),
+            ),
+            subtitle: const Text(
+              'Adhan notification at each prayer time',
+              style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
+            ),
+            value: settings.enabled,
+            onChanged: controller.setNotificationsEnabled,
+          ),
+          if (settings.enabled) ...<Widget>[
+            const Divider(height: 1),
+            for (final PrayerId prayer in PrayerId.values)
+              if (prayer.isPrayer)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: Icon(
+                    prayer.icon,
+                    size: 20,
+                    color: AppColors.emerald,
+                  ),
+                  title: Text(
+                    prayer.label,
+                    style: const TextStyle(fontSize: 14, color: AppColors.ink),
+                  ),
+                  value: settings.isEnabledFor(prayer),
+                  onChanged: (_) => controller.togglePrayerNotification(prayer),
+                ),
+            if (!ready)
+              _NotificationWarning(
+                message: 'Notifications are blocked. Allow them to receive prayer reminders.',
+                actionLabel: 'Allow',
+                onAction: controller.requestNotificationPermission,
+              ),
+            if (ready && !controller.exactAlarmsAllowed)
+              _NotificationWarning(
+                message: 'Exact timing is off. Allow alarms so reminders arrive at the exact minute.',
+                actionLabel: 'Allow',
+                onAction: controller.requestExactAlarms,
+              ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: controller.sendTestNotification,
+                icon: const Icon(Icons.notifications_none_rounded, size: 18),
+                label: const Text('Send test notification'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.emerald),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationWarning extends StatelessWidget {
+  const _NotificationWarning({
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 18,
+            color: AppColors.goldDark,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.inkMuted,
+                height: 1.35,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onAction,
+            style: TextButton.styleFrom(foregroundColor: AppColors.goldDark),
+            child: Text(actionLabel),
+          ),
+        ],
       ),
     );
   }
