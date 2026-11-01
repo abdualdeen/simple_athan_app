@@ -8,7 +8,9 @@ import 'package:athan_app/models/notification_settings.dart';
 import 'package:athan_app/models/prayer.dart';
 import 'package:athan_app/models/prayer_notification.dart';
 import 'package:athan_app/models/prayer_settings.dart';
+import 'package:athan_app/screens/manual_location_screen.dart';
 import 'package:athan_app/screens/settings_screen.dart';
+import 'package:athan_app/services/location_search_service.dart';
 import 'package:athan_app/services/location_service.dart';
 import 'package:athan_app/services/notification_service.dart';
 import 'package:athan_app/services/prayer_times_service.dart';
@@ -19,7 +21,7 @@ const AppLocation _london = AppLocation(
   name: 'London, United Kingdom',
   latitude: 51.5074,
   longitude: -0.1278,
-  isDeviceLocation: true,
+  isResolved: true,
 );
 
 class _FakeLocationService implements LocationService {
@@ -55,6 +57,19 @@ class _InMemorySettingsStore implements SettingsStore {
   @override
   Future<void> saveNotificationSettings(NotificationSettings value) async =>
       notificationSettings = value;
+}
+
+class _FakeLocationSearchService implements LocationSearchService {
+  _FakeLocationSearchService(this.results);
+
+  final List<AppLocation> results;
+  String? lastQuery;
+
+  @override
+  Future<List<AppLocation>> search(String query) async {
+    lastQuery = query;
+    return results;
+  }
 }
 
 class _FakeNotificationService implements NotificationService {
@@ -111,25 +126,38 @@ DateTime _midMorning() {
   return fajr.time.add(dhuhr.time.difference(fajr.time) ~/ 2);
 }
 
-Future<({PrayerTimesController controller, _FakeNotificationService fake})>
-_createController() async {
+Future<
+  ({
+    PrayerTimesController controller,
+    _FakeNotificationService fake,
+    _FakeLocationSearchService search,
+  })
+>
+_createController({
+  List<AppLocation> searchResults = const <AppLocation>[],
+}) async {
   final DateTime now = _midMorning();
   final _FakeNotificationService fake = _FakeNotificationService();
+  final _FakeLocationSearchService search = _FakeLocationSearchService(
+    searchResults,
+  );
   final PrayerTimesController controller = PrayerTimesController(
     locationService: const _FakeLocationService(_london),
     settingsStore: _InMemorySettingsStore(),
     notificationService: fake,
+    locationSearchService: search,
     clock: () => now,
   );
   await controller.initialize();
-  return (controller: controller, fake: fake);
+  return (controller: controller, fake: fake, search: search);
 }
 
 void main() {
   testWidgets('home screen shows location, dates and calculated prayers', (
     WidgetTester tester,
   ) async {
-    final (:controller, fake: _) = await _createController();
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
 
     await tester.pumpWidget(AthanApp(controller: controller));
     await tester.pump();
@@ -149,7 +177,8 @@ void main() {
   testWidgets('drawer opens settings and changes the Asr madhab', (
     WidgetTester tester,
   ) async {
-    final (:controller, fake: _) = await _createController();
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
 
     await tester.pumpWidget(AthanApp(controller: controller));
     await tester.pump();
@@ -180,7 +209,9 @@ void main() {
   testWidgets('muting a prayer removes its scheduled reminder', (
     WidgetTester tester,
   ) async {
-    final (:controller, :fake) = await _createController();
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+    final _FakeNotificationService fake = result.fake;
 
     await tester.pumpWidget(AthanApp(controller: controller));
     await tester.pump();
@@ -211,6 +242,81 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('manual location search updates the location', (
+    WidgetTester tester,
+  ) async {
+    const AppLocation paris = AppLocation(
+      name: 'Paris, France',
+      latitude: 48.8566,
+      longitude: 2.3522,
+      isResolved: true,
+    );
+    final result = await _createController(
+      searchResults: const <AppLocation>[paris],
+    );
+    final PrayerTimesController controller = result.controller;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Builder(
+          builder: (BuildContext context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (BuildContext context) =>
+                        ManualLocationScreen(controller: controller),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Paris');
+    await tester.tap(find.text('Search'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 10));
+
+    expect(result.search.lastQuery, 'Paris');
+    expect(find.text('Paris, France'), findsOneWidget);
+
+    await tester.tap(find.text('Paris, France'));
+    await tester.pumpAndSettle();
+
+    expect(controller.location.name, 'Paris, France');
+    expect(controller.location.latitude, 48.8566);
+    expect(controller.location.isResolved, isTrue);
+    expect(find.text('Enter location'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
+  test('setManualLocation updates and persists the location', () async {
+    final result = await _createController();
+    const AppLocation paris = AppLocation(
+      name: 'Paris, France',
+      latitude: 48.8566,
+      longitude: 2.3522,
+    );
+
+    await result.controller.setManualLocation(paris);
+
+    expect(result.controller.location.name, 'Paris, France');
+    expect(result.controller.location.isResolved, isTrue);
+    expect(result.fake.scheduled, isNotEmpty);
+
+    result.controller.dispose();
+  });
+
   testWidgets('settings can disable all prayer reminders', (
     WidgetTester tester,
   ) async {
@@ -218,7 +324,9 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    final (:controller, :fake) = await _createController();
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+    final _FakeNotificationService fake = result.fake;
 
     await tester.pumpWidget(
       MaterialApp(

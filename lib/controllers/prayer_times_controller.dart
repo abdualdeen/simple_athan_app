@@ -8,6 +8,7 @@ import '../models/prayer.dart';
 import '../models/prayer_notification.dart';
 import '../models/prayer_schedule.dart';
 import '../models/prayer_settings.dart';
+import '../services/location_search_service.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../services/prayer_notification_builder.dart';
@@ -21,12 +22,15 @@ class PrayerTimesController extends ChangeNotifier {
     required LocationService locationService,
     required SettingsStore settingsStore,
     required NotificationService notificationService,
+    LocationSearchService locationSearchService =
+        const GeocodingLocationSearchService(),
     PrayerTimesService prayerTimesService = const PrayerTimesService(),
     DateTime Function()? clock,
   }) : this._(
          locationService,
          settingsStore,
          notificationService,
+         locationSearchService,
          prayerTimesService,
          clock ?? DateTime.now,
        );
@@ -35,6 +39,7 @@ class PrayerTimesController extends ChangeNotifier {
     this._locationService,
     this._settingsStore,
     this._notificationService,
+    this._locationSearchService,
     this._prayerTimesService,
     this._clock,
   ) : _now = _clock();
@@ -42,6 +47,7 @@ class PrayerTimesController extends ChangeNotifier {
   final LocationService _locationService;
   final SettingsStore _settingsStore;
   final NotificationService _notificationService;
+  final LocationSearchService _locationSearchService;
   final PrayerTimesService _prayerTimesService;
   final DateTime Function() _clock;
 
@@ -90,7 +96,7 @@ class PrayerTimesController extends ChangeNotifier {
 
     await _prepareNotifications();
 
-    if (_location.isDeviceLocation) {
+    if (_location.isResolved) {
       await syncNotifications();
     } else {
       await refreshLocation();
@@ -118,6 +124,20 @@ class PrayerTimesController extends ChangeNotifier {
       _notify();
     }
 
+    await syncNotifications();
+  }
+
+  /// Looks up places by name, or parses `latitude, longitude` input.
+  Future<List<AppLocation>> searchLocations(String query) =>
+      _locationSearchService.search(query);
+
+  /// Uses a location chosen by the user instead of the device's position.
+  Future<void> setManualLocation(AppLocation location) async {
+    _location = location.copyWith(isResolved: true);
+    _locationError = null;
+    _day = null;
+    _notify();
+    await _settingsStore.saveLocation(_location);
     await syncNotifications();
   }
 
@@ -191,7 +211,7 @@ class PrayerTimesController extends ChangeNotifier {
 
   /// Rebuilds the rolling window of scheduled prayer reminders.
   Future<void> syncNotifications() async {
-    if (_disposed || !_notificationsReady || !_location.isDeviceLocation) {
+    if (_disposed || !_notificationsReady || !_location.isResolved) {
       return;
     }
     if (_isSyncingNotifications) {

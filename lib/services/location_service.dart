@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/app_location.dart';
+import 'place_names.dart';
 
 class LocationException implements Exception {
   const LocationException(this.message);
@@ -67,46 +67,15 @@ class DeviceLocationService implements LocationService {
       );
     }
 
-    final String name = await _reverseGeocode(
-      position.latitude,
-      position.longitude,
-    );
+    final String name =
+        await placeNameFor(position.latitude, position.longitude) ??
+        coordinateLabel(position.latitude, position.longitude);
 
     return AppLocation(
       name: name,
       latitude: position.latitude,
       longitude: position.longitude,
-      isDeviceLocation: true,
+      isResolved: true,
     );
   }
-
-  Future<String> _reverseGeocode(double latitude, double longitude) async {
-    try {
-      final List<Placemark> placemarks = await Geocoding()
-          .placemarkFromCoordinates(latitude, longitude);
-      if (placemarks.isEmpty) return _coordinateLabel(latitude, longitude);
-
-      final Placemark place = placemarks.first;
-      final List<String> parts = <String>[
-        if (place.locality != null && place.locality!.isNotEmpty)
-          place.locality!,
-        if (place.country != null && place.country!.isNotEmpty) place.country!,
-      ];
-      if (parts.isEmpty) {
-        final String? area =
-            place.subAdministrativeArea ?? place.administrativeArea;
-        if (area != null && area.isNotEmpty) parts.add(area);
-      }
-      return parts.isEmpty
-          ? _coordinateLabel(latitude, longitude)
-          : parts.join(', ');
-    } catch (_) {
-      // Reverse geocoding is best effort; coordinates still give accurate
-      // prayer times.
-      return _coordinateLabel(latitude, longitude);
-    }
-  }
-
-  String _coordinateLabel(double latitude, double longitude) =>
-      '${latitude.toStringAsFixed(2)}°, ${longitude.toStringAsFixed(2)}°';
 }

@@ -124,16 +124,25 @@ class _PrayerTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                Text(
+                  prayer.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w600,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
                 Row(
                   children: <Widget>[
                     Flexible(
                       child: Text(
-                        prayer.label,
-                        style: TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w600,
-                          color: titleColor,
-                        ),
+                        prayer.arabicLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: subtitleColor),
                       ),
                     ),
                     if (isNext) ...<Widget>[
@@ -159,11 +168,6 @@ class _PrayerTile extends StatelessWidget {
                       ),
                     ],
                   ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  prayer.arabicLabel,
-                  style: TextStyle(fontSize: 12, color: subtitleColor),
                 ),
               ],
             ),
@@ -198,6 +202,8 @@ class _PrayerTile extends StatelessWidget {
                   ? 'Unmute ${prayer.label}'
                   : 'Mute ${prayer.label}',
               visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: EdgeInsets.zero,
               iconSize: 19,
               color: isNext ? AppColors.goldSoft : AppColors.inkMuted,
               icon: Icon(

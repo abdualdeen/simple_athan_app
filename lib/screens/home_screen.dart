@@ -8,6 +8,7 @@ import '../widgets/app_drawer.dart';
 import '../widgets/home_header.dart';
 import '../widgets/next_prayer_card.dart';
 import '../widgets/prayer_list.dart';
+import 'manual_location_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -52,15 +53,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  void _openManualLocation() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) =>
+            ManualLocationScreen(controller: widget.controller),
+      ),
+    );
+  }
+
   void _showLocationSheet() {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.cream,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (BuildContext sheetContext) => _LocationSheet(
         controller: widget.controller,
+        onEnterManually: () {
+          Navigator.of(sheetContext).pop();
+          _openManualLocation();
+        },
         onOpenSettings: () {
           Navigator.of(sheetContext).pop();
           _openSettings();
@@ -295,10 +310,12 @@ class _CalculationNote extends StatelessWidget {
 class _LocationSheet extends StatelessWidget {
   const _LocationSheet({
     required this.controller,
+    required this.onEnterManually,
     required this.onOpenSettings,
   });
 
   final PrayerTimesController controller;
+  final VoidCallback onEnterManually;
   final VoidCallback onOpenSettings;
 
   @override
@@ -307,131 +324,155 @@ class _LocationSheet extends StatelessWidget {
       child: ListenableBuilder(
         listenable: controller,
         builder: (BuildContext context, Widget? _) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.inkMuted.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Location',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: <Widget>[
-                    Container(
-                      width: 44,
-                      height: 44,
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.location_on_outlined,
-                        color: AppColors.emerald,
-                        size: 22,
+                        color: AppColors.inkMuted.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            controller.location.name,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.ink,
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Location',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: <Widget>[
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.location_on_outlined,
+                          color: AppColors.emerald,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              controller.location.name,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            controller.location.coordinatesLabel,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.inkMuted,
+                            const SizedBox(height: 2),
+                            Text(
+                              controller.location.coordinatesLabel,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.inkMuted,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (controller.locationError != null) ...<Widget>[
+                    const SizedBox(height: 12),
+                    Text(
+                      controller.locationError!,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFFB3261E),
+                        height: 1.35,
                       ),
                     ),
                   ],
-                ),
-                if (controller.locationError != null) ...<Widget>[
-                  const SizedBox(height: 12),
-                  Text(
-                    controller.locationError!,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: Color(0xFFB3261E),
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: controller.isLocating
-                        ? null
-                        : controller.refreshLocation,
-                    icon: controller.isLocating
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: controller.isLocating
+                          ? null
+                          : controller.refreshLocation,
+                      icon: controller.isLocating
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
-                            ),
-                          )
-                        : const Icon(Icons.my_location_rounded, size: 18),
-                    label: Text(
-                      controller.isLocating
-                          ? 'Locating…'
-                          : 'Update from device',
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.emerald,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                            )
+                          : const Icon(Icons.my_location_rounded, size: 18),
+                      label: Text(
+                        controller.isLocating
+                            ? 'Locating…'
+                            : 'Update from device',
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.emerald,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: onOpenSettings,
-                    icon: const Icon(Icons.tune_rounded, size: 18),
-                    label: const Text('Calculation settings'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.emerald,
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: onEnterManually,
+                      icon: const Icon(
+                        Icons.edit_location_alt_outlined,
+                        size: 18,
+                      ),
+                      label: const Text('Enter location manually'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.emerald,
+                        side: BorderSide(
+                          color: AppColors.emerald.withValues(alpha: 0.3),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: onOpenSettings,
+                      icon: const Icon(Icons.tune_rounded, size: 18),
+                      label: const Text('Calculation settings'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.emerald,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

@@ -50,7 +50,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
       name: name,
       latitude: latitude,
       longitude: longitude,
-      isDeviceLocation: true,
+      isResolved: true,
     );
   }
 

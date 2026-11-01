@@ -5,6 +5,7 @@ import '../models/notification_settings.dart';
 import '../models/prayer.dart';
 import '../models/prayer_settings.dart';
 import '../theme/app_theme.dart';
+import 'manual_location_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.controller});
@@ -346,6 +347,30 @@ class _LocationCard extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.emerald,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (BuildContext context) =>
+                      ManualLocationScreen(controller: controller),
+                ),
+              ),
+              icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
+              label: const Text('Enter location manually'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.emerald,
+                side: BorderSide(
+                  color: AppColors.emerald.withValues(alpha: 0.3),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),

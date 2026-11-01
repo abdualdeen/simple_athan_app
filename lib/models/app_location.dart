@@ -7,10 +7,10 @@ class AppLocation {
     required this.name,
     required this.latitude,
     required this.longitude,
-    this.isDeviceLocation = false,
+    this.isResolved = false,
   });
 
-  /// Used until the device location is known, or when permission is denied.
+  /// Used until a real location is known, or when permission is denied.
   static const AppLocation makkah = AppLocation(
     name: 'Makkah, Saudi Arabia',
     latitude: 21.4225,
@@ -21,8 +21,9 @@ class AppLocation {
   final double latitude;
   final double longitude;
 
-  /// Whether this location came from the device's location services.
-  final bool isDeviceLocation;
+  /// Whether this is a real location (from the device or entered manually)
+  /// rather than the fallback used before a location is known.
+  final bool isResolved;
 
   String get coordinatesLabel =>
       '${latitude.toStringAsFixed(3)}°, ${longitude.toStringAsFixed(3)}°';
@@ -31,13 +32,13 @@ class AppLocation {
     String? name,
     double? latitude,
     double? longitude,
-    bool? isDeviceLocation,
+    bool? isResolved,
   }) {
     return AppLocation(
       name: name ?? this.name,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      isDeviceLocation: isDeviceLocation ?? this.isDeviceLocation,
+      isResolved: isResolved ?? this.isResolved,
     );
   }
 }
