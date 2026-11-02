@@ -53,3 +53,11 @@ dependencies {
 flutter {
     source = "../.."
 }
+
+tasks.register("printSdkVersions") {
+    doLast {
+        println("CompileSdk: ${android.compileSdkVersion}")
+        println("TargetSdk: ${android.defaultConfig.targetSdkVersion}")
+        println("MinSdk: ${android.defaultConfig.minSdkVersion}")
+    }
+}

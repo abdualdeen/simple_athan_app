@@ -36,10 +36,6 @@ class PrayerList extends StatelessWidget {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
-              Text(
-                '${schedule.prayers.length} times',
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
             ],
           ),
           const SizedBox(height: 4),
