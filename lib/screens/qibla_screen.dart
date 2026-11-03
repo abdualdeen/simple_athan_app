@@ -31,6 +31,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
   double? _heading;
   bool _shouldCalibrate = false;
   bool _compassUnavailable = false;
+  bool _wasAligned = false;
 
   @override
   void initState() {
@@ -41,15 +42,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
       DeviceOrientation.portraitDown,
     ]);
     _subscription = widget.compassService.headingStream().listen(
-      (CompassReading reading) {
-        if (!mounted) return;
-        _sensorTimeout?.cancel();
-        setState(() {
-          _heading = reading.heading;
-          _shouldCalibrate = reading.shouldCalibrate;
-          _compassUnavailable = false;
-        });
-      },
+      _handleReading,
       onError: (Object error) {
         if (!mounted) return;
         setState(() => _compassUnavailable = true);
@@ -65,6 +58,31 @@ class _QiblaScreenState extends State<QiblaScreen> {
       if (!mounted || _heading != null) return;
       setState(() => _compassUnavailable = true);
     });
+  }
+
+  void _handleReading(CompassReading reading) {
+    if (!mounted) return;
+    _sensorTimeout?.cancel();
+    final bool aligned = _isAligned(reading.heading);
+    // Buzz once when the Qibla is found, not on every sensor frame while it
+    // stays aligned.
+    if (aligned && !_wasAligned) {
+      HapticFeedback.mediumImpact();
+    }
+    _wasAligned = aligned;
+    setState(() {
+      _heading = reading.heading;
+      _shouldCalibrate = reading.shouldCalibrate;
+      _compassUnavailable = false;
+    });
+  }
+
+  /// Whether [heading] points at the Qibla within the ±5° lock-on window.
+  bool _isAligned(double? heading) {
+    if (heading == null) return false;
+    final double relative =
+        (qiblaBearing(widget.controller.location) - heading + 360) % 360;
+    return relative <= 5 || relative >= 355;
   }
 
   @override
@@ -96,11 +114,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
           final double qibla = qiblaBearing(location);
           final double distanceKm = distanceToMakkahKm(location);
           final double? heading = _heading;
-          final double? relative = heading == null
-              ? null
-              : (qibla - heading + 360) % 360;
-          final bool aligned =
-              relative != null && (relative <= 5 || relative >= 355);
+          final bool aligned = _isAligned(heading);
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
