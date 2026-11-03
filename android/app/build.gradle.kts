@@ -40,10 +40,9 @@ android {
             // builds. The notification icon (ic_stat_athan) and the raw athan
             // sounds are looked up by resource name at runtime by
             // flutter_local_notifications, which the shrinker cannot see, so
-            // it strips them and notification setup fails with
-            // PlatformException(invalid_icon). Keep shrinking off.
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // they must be kept explicitly via res/raw/keep.xml.
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }

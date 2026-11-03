@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resources referenced only by name at runtime (flutter_local_notifications
+     resolves the notification icon and athan sounds via getIdentifier), so the
+     resource shrinker cannot see them and would strip them. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_athan,@raw/makkah_ali_mullah,@raw/madina_muhammad_qassas" />

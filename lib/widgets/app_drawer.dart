@@ -51,11 +51,6 @@ class AppDrawer extends StatelessWidget {
                   onTap: () => _openQibla(context),
                 ),
                 _DrawerItem(
-                  icon: Icons.notifications_outlined,
-                  label: 'Notifications',
-                  onTap: () => _showComingSoon(context, 'Notifications'),
-                ),
-                _DrawerItem(
                   icon: Icons.info_outline_rounded,
                   label: 'About',
                   onTap: () => _showComingSoon(context, 'About'),
