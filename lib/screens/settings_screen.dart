@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
 import '../controllers/theme_controller.dart';
+import '../models/athan_sound.dart';
 import '../models/notification_settings.dart';
 import '../models/prayer.dart';
 import '../models/prayer_settings.dart';
@@ -99,7 +100,10 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               const _SectionLabel('NOTIFICATIONS'),
-              _NotificationCard(controller: controller),
+              _NotificationCard(
+                controller: controller,
+                onPickSound: () => _pickSound(context),
+              ),
               const SizedBox(height: 24),
               const _SectionLabel('APPEARANCE'),
               _SettingsCard(
@@ -231,6 +235,99 @@ class SettingsScreen extends StatelessWidget {
       await controller.updateSettings(
         controller.settings.copyWith(method: selected),
       );
+    }
+  }
+
+  Future<void> _pickSound(BuildContext context) async {
+    final AppPalette palette = context.palette;
+    final AthanSound? selected = await showModalBottomSheet<AthanSound>(
+      context: context,
+      backgroundColor: palette.background,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext sheetContext) {
+        final AppPalette sheetPalette = sheetContext.palette;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const SizedBox(height: 10),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: sheetPalette.inkMuted.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Athan sound',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: sheetPalette.ink,
+                      ),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                    children: <Widget>[
+                      for (final AthanSound sound in AthanSound.values)
+                        ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          leading: Icon(
+                            sound == AthanSound.system
+                                ? Icons.volume_up_outlined
+                                : Icons.mosque_outlined,
+                            color: sheetPalette.primary,
+                          ),
+                          title: Text(
+                            sound.label,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight:
+                                  sound == controller.notifications.sound
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: sheetPalette.ink,
+                            ),
+                          ),
+                          trailing: sound == controller.notifications.sound
+                              ? Icon(
+                                  Icons.check_circle_rounded,
+                                  color: sheetPalette.primary,
+                                  size: 20,
+                                )
+                              : null,
+                          onTap: () => Navigator.of(sheetContext).pop(sound),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      await controller.setNotificationSound(selected);
     }
   }
 
@@ -576,9 +673,13 @@ class _SettingRow extends StatelessWidget {
 }
 
 class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.controller});
+  const _NotificationCard({
+    required this.controller,
+    required this.onPickSound,
+  });
 
   final PrayerTimesController controller;
+  final Future<void> Function() onPickSound;
 
   @override
   Widget build(BuildContext context) {
@@ -629,6 +730,13 @@ class _NotificationCard extends StatelessWidget {
                   value: settings.isEnabledFor(prayer),
                   onChanged: (_) => controller.togglePrayerNotification(prayer),
                 ),
+            const Divider(height: 1),
+            _SettingRow(
+              icon: Icons.music_note_outlined,
+              title: 'Athan sound',
+              value: settings.sound.label,
+              onTap: onPickSound,
+            ),
             if (!ready)
               _NotificationWarning(
                 message: 'Notifications are blocked. Allow them to receive prayer reminders.',

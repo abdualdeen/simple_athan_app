@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/app_location.dart';
+import '../models/athan_sound.dart';
 import '../models/notification_settings.dart';
 import '../models/prayer.dart';
 import '../models/prayer_notification.dart';
@@ -172,6 +173,15 @@ class PrayerTimesController extends ChangeNotifier {
     }
   }
 
+  /// Switches the adhan sound used by prayer notifications.
+  Future<void> setNotificationSound(AthanSound sound) async {
+    if (_notifications.sound == sound) return;
+    _notifications = _notifications.copyWith(sound: sound);
+    _notify();
+    await _settingsStore.saveNotificationSettings(_notifications);
+    await syncNotifications();
+  }
+
   Future<bool> requestNotificationPermission() async {
     try {
       _notificationsReady = await _notificationService.requestPermission();
@@ -203,7 +213,9 @@ class PrayerTimesController extends ChangeNotifier {
       if (!granted) return;
     }
     try {
-      await _notificationService.showTestNotification();
+      await _notificationService.showTestNotification(
+        sound: _notifications.sound,
+      );
     } catch (error) {
       debugPrint('Test notification failed: $error');
     }
@@ -233,6 +245,7 @@ class PrayerTimesController extends ChangeNotifier {
             );
         await _notificationService.schedulePrayerNotifications(
           notifications: notifications,
+          sound: _notifications.sound,
         );
       } while (_syncPending);
     } catch (error) {

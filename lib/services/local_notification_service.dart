@@ -4,6 +4,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../models/athan_sound.dart';
 import '../models/prayer_notification.dart';
 import 'notification_service.dart';
 
@@ -12,7 +13,7 @@ class LocalNotificationService implements NotificationService {
   LocalNotificationService({FlutterLocalNotificationsPlugin? plugin})
     : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
-  static const String _channelId = 'athan_prayers';
+  static const String _channelIdPrefix = 'athan_prayers';
   static const String _channelName = 'Prayer times';
   static const String _channelDescription =
       'Adhan reminders for the five daily prayers';
@@ -128,6 +129,7 @@ class LocalNotificationService implements NotificationService {
   @override
   Future<void> schedulePrayerNotifications({
     required List<PrayerNotification> notifications,
+    AthanSound sound = AthanSound.system,
   }) async {
     await initialize();
     await _plugin.cancelAllPendingNotifications();
@@ -143,7 +145,7 @@ class LocalNotificationService implements NotificationService {
         title: notification.title,
         body: notification.body,
         scheduledDate: tz.TZDateTime.from(notification.time, tz.local),
-        notificationDetails: _details,
+        notificationDetails: _detailsFor(sound),
         androidScheduleMode: scheduleMode,
         payload: notification.prayer.name,
       );
@@ -157,35 +159,57 @@ class LocalNotificationService implements NotificationService {
   }
 
   @override
-  Future<void> showTestNotification() async {
+  Future<void> showTestNotification({
+    AthanSound sound = AthanSound.system,
+  }) async {
     await initialize();
     await _plugin.show(
       id: 9999,
       title: 'Athan test notification',
       body: 'Prayer reminders are working.',
-      notificationDetails: _details,
+      notificationDetails: _detailsFor(sound),
     );
   }
 
-  static const NotificationDetails _details = NotificationDetails(
-    android: AndroidNotificationDetails(
-      _channelId,
+  /// Builds the details for [sound].
+  ///
+  /// Android locks the sound of a notification channel once created, so every
+  /// sound gets its own channel id. Custom sounds are bundled as raw
+  /// resources on Android and as bundle files on iOS/macOS.
+  static NotificationDetails _detailsFor(AthanSound sound) {
+    final String channelId = '${_channelIdPrefix}_${sound.name}';
+
+    final AndroidNotificationDetails android = AndroidNotificationDetails(
+      channelId,
       _channelName,
       channelDescription: _channelDescription,
       icon: 'ic_stat_athan',
       importance: Importance.high,
       priority: Priority.high,
       category: AndroidNotificationCategory.reminder,
-    ),
-    iOS: DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    ),
-    macOS: DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    ),
-  );
+      sound: sound == AthanSound.system
+          ? null
+          : RawResourceAndroidNotificationSound(sound.androidResource),
+    );
+
+    final String? darwinSound = sound == AthanSound.system
+        ? null
+        : sound.darwinFile;
+
+    return NotificationDetails(
+      android: android,
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: darwinSound,
+      ),
+      macOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: darwinSound,
+      ),
+    );
+  }
 }

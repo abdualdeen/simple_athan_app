@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_location.dart';
+import '../models/athan_sound.dart';
 import '../models/notification_settings.dart';
 import '../models/prayer.dart';
 import '../models/prayer_settings.dart';
@@ -25,6 +26,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   static const String _locationLongitudeKey = 'location_longitude';
   static const String _notificationsEnabledKey = 'notifications_enabled';
   static const String _mutedPrayersKey = 'muted_prayers';
+  static const String _notificationSoundKey = 'notification_sound';
   static const String _themeKey = 'app_theme';
 
   @override
@@ -74,6 +76,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
     return NotificationSettings(
       enabled: prefs.getBool(_notificationsEnabledKey) ?? true,
       muted: mutedNames.map(PrayerId.fromName).whereType<PrayerId>().toSet(),
+      sound: AthanSound.fromName(prefs.getString(_notificationSoundKey)),
     );
   }
 
@@ -85,6 +88,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
       _mutedPrayersKey,
       settings.muted.map((PrayerId id) => id.name).toList(),
     );
+    await prefs.setString(_notificationSoundKey, settings.sound.name);
   }
 
   @override

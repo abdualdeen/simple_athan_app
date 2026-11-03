@@ -1,3 +1,4 @@
+import '../models/athan_sound.dart';
 import '../models/prayer_notification.dart';
 
 /// Platform notification scheduling used by the app.
@@ -13,12 +14,14 @@ abstract interface class NotificationService {
   /// Opens the system screen that grants exact alarm scheduling.
   Future<bool> requestExactAlarmsPermission();
 
-  /// Replaces all pending prayer reminders with [notifications].
+  /// Replaces all pending prayer reminders with [notifications], played
+  /// with [sound].
   Future<void> schedulePrayerNotifications({
     required List<PrayerNotification> notifications,
+    AthanSound sound = AthanSound.system,
   });
 
   Future<void> cancelAll();
 
-  Future<void> showTestNotification();
+  Future<void> showTestNotification({AthanSound sound = AthanSound.system});
 }

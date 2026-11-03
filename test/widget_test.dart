@@ -7,6 +7,7 @@ import 'package:athan_app/app.dart';
 import 'package:athan_app/controllers/prayer_times_controller.dart';
 import 'package:athan_app/controllers/theme_controller.dart';
 import 'package:athan_app/models/app_location.dart';
+import 'package:athan_app/models/athan_sound.dart';
 import 'package:athan_app/models/notification_settings.dart';
 import 'package:athan_app/models/prayer.dart';
 import 'package:athan_app/models/prayer_notification.dart';
@@ -100,6 +101,7 @@ class _FakeNotificationService implements NotificationService {
   bool cancelled = false;
   int testNotifications = 0;
   List<PrayerNotification> scheduled = <PrayerNotification>[];
+  AthanSound? lastScheduledSound;
 
   @override
   Future<void> initialize() async {}
@@ -116,8 +118,10 @@ class _FakeNotificationService implements NotificationService {
   @override
   Future<void> schedulePrayerNotifications({
     required List<PrayerNotification> notifications,
+    AthanSound sound = AthanSound.system,
   }) async {
     scheduled = notifications;
+    lastScheduledSound = sound;
   }
 
   @override
@@ -127,7 +131,9 @@ class _FakeNotificationService implements NotificationService {
   }
 
   @override
-  Future<void> showTestNotification() async => testNotifications++;
+  Future<void> showTestNotification({
+    AthanSound sound = AthanSound.system,
+  }) async => testNotifications++;
 }
 
 /// A fixed "now" between Fajr and Dhuhr so the next prayer is deterministic
@@ -473,5 +479,49 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
     themeController.dispose();
+  });
+
+  testWidgets('settings can pick the athan sound', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+    final _FakeNotificationService fake = result.fake;
+
+    await tester.pumpWidget(
+      ListenableBuilder(
+        listenable: controller,
+        builder: (BuildContext context, Widget? _) => MaterialApp(
+          theme: AppTheme.light,
+          home: SettingsScreen(
+            controller: controller,
+            themeController: result.themeController,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('System default'), findsOneWidget);
+
+    await tester.tap(find.text('Athan sound'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Makkah - Ali Mullah'), findsOneWidget);
+    expect(find.text('Madina - Muhammad Qassas'), findsOneWidget);
+
+    await tester.tap(find.text('Makkah - Ali Mullah'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(controller.notifications.sound, AthanSound.makkahAliMullah);
+    expect(fake.lastScheduledSound, AthanSound.makkahAliMullah);
+    expect(find.text('Makkah - Ali Mullah'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
   });
 }

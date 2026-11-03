@@ -36,6 +36,14 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // AGP 9 enables R8 and resource shrinking by default for release
+            // builds. The notification icon (ic_stat_athan) and the raw athan
+            // sounds are looked up by resource name at runtime by
+            // flutter_local_notifications, which the shrinker cannot see, so
+            // it strips them and notification setup fails with
+            // PlatformException(invalid_icon). Keep shrinking off.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
