@@ -94,12 +94,15 @@ class PrayerTimesController extends ChangeNotifier {
     _notify();
     _startTicker();
 
-    await _prepareNotifications();
-
+    // Ask for the essential location permission first; notifications can be
+    // requested once the location is known.
     if (_location.isResolved) {
+      await _prepareNotifications();
       await syncNotifications();
     } else {
       await refreshLocation();
+      await _prepareNotifications();
+      await syncNotifications();
     }
   }
 

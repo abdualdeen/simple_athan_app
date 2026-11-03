@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/app_location.dart';
@@ -46,19 +47,19 @@ class DeviceLocationService implements LocationService {
       );
     }
 
-    Position? position;
-    try {
-      position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 30),
-        ),
-      );
-    } on TimeoutException {
-      // Fall back to the last cached fix, which is accurate enough for prayer
-      // times.
-      position = await Geolocator.getLastKnownPosition();
-    }
+    // A recent cached fix is instant and accurate enough for prayer times.
+    Position? position = await _recentLastKnownPosition();
+
+    // Fall back from balanced accuracy to low power, then to any cached fix.
+    position ??= await _tryCurrentPosition(
+      LocationAccuracy.medium,
+      const Duration(seconds: 30),
+    );
+    position ??= await _tryCurrentPosition(
+      LocationAccuracy.low,
+      const Duration(seconds: 15),
+    );
+    position ??= await _lastKnownPosition();
 
     if (position == null) {
       throw const LocationException(
@@ -77,5 +78,60 @@ class DeviceLocationService implements LocationService {
       longitude: position.longitude,
       isResolved: true,
     );
+  }
+
+  Future<Position?> _tryCurrentPosition(
+    LocationAccuracy accuracy,
+    Duration timeLimit,
+  ) async {
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: _settings(accuracy, timeLimit),
+      );
+    } on LocationServiceDisabledException {
+      throw const LocationException(
+        'Location services are turned off. Enable them in your device settings.',
+      );
+    } on PermissionDeniedException {
+      throw const LocationException(
+        'Location permission was denied. Prayer times need your location.',
+      );
+    } on TimeoutException {
+      return null;
+    } catch (error) {
+      debugPrint('Location lookup ($accuracy) failed: $error');
+      return null;
+    }
+  }
+
+  /// Uses the platform LocationManager on Android. Some devices ship with a
+  /// modified Google Play Services where the fused provider never responds.
+  LocationSettings _settings(LocationAccuracy accuracy, Duration timeLimit) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: accuracy,
+        timeLimit: timeLimit,
+        forceLocationManager: true,
+      );
+    }
+    return LocationSettings(accuracy: accuracy, timeLimit: timeLimit);
+  }
+
+  Future<Position?> _recentLastKnownPosition() async {
+    final Position? position = await _lastKnownPosition();
+    if (position == null) return null;
+    final Duration age = DateTime.now().difference(position.timestamp);
+    return age <= const Duration(minutes: 10) ? position : null;
+  }
+
+  Future<Position?> _lastKnownPosition() async {
+    try {
+      // Some devices with a modified Play Services never answer this call.
+      return await Geolocator.getLastKnownPosition().timeout(
+        const Duration(seconds: 3),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 }
