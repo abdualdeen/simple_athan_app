@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
 import '../controllers/theme_controller.dart';
+import '../models/app_location.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/home_header.dart';
@@ -359,47 +360,24 @@ class _LocationSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Row(
-                    children: <Widget>[
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: palette.surface,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(
-                          Icons.location_on_outlined,
-                          color: palette.primary,
-                          size: 22,
-                        ),
+                  if (controller.savedLocations.isEmpty)
+                    _SavedLocationRow(location: controller.location)
+                  else
+                    for (int i = 0; i < controller.savedLocations.length; i++)
+                      _SavedLocationRow(
+                        location: controller.savedLocations[i],
+                        active: i == controller.activeLocationIndex,
+                        onTap: () => controller.switchLocation(i),
+                        onDelete:
+                            controller.savedLocations.length > 1 &&
+                                i != controller.activeLocationIndex
+                            ? () => controller.removeLocation(i)
+                            : null,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              controller.location.name,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: palette.ink,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              controller.location.coordinatesLabel,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: palette.inkMuted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  if (controller.savedLocations.length == 1) ...<Widget>[
+                    const SizedBox(height: 4),
+                    _AddLocationRow(onTap: onEnterManually),
+                  ],
                   if (controller.locationError != null) ...<Widget>[
                     const SizedBox(height: 12),
                     Text(
@@ -484,6 +462,141 @@ class _LocationSheet extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// A saved location the user can switch to. Without [onTap] it renders as a
+/// plain row, used when no location has been resolved yet.
+class _SavedLocationRow extends StatelessWidget {
+  const _SavedLocationRow({
+    required this.location,
+    this.active = false,
+    this.onTap,
+    this.onDelete,
+  });
+
+  final AppLocation location;
+  final bool active;
+  final VoidCallback? onTap;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: palette.background,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.location_on_outlined,
+                    color: palette.primary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        location.name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: palette.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        location.coordinatesLabel,
+                        style: TextStyle(fontSize: 12, color: palette.inkMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                if (active)
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: palette.primary,
+                    size: 20,
+                  )
+                else if (onDelete != null)
+                  IconButton(
+                    onPressed: onDelete,
+                    tooltip: 'Remove location',
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: palette.inkMuted,
+                      size: 20,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Invites the user to save a second location while a slot is free.
+class _AddLocationRow extends StatelessWidget {
+  const _AddLocationRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: palette.primary.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(
+                Icons.add_circle_outline_rounded,
+                size: 20,
+                color: palette.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Add second location',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: palette.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -39,6 +39,13 @@ const AppLocation _newYork = AppLocation(
   isResolved: true,
 );
 
+const AppLocation _paris = AppLocation(
+  name: 'Paris, France',
+  latitude: 48.8566,
+  longitude: 2.3522,
+  isResolved: true,
+);
+
 class _FakeLocationService implements LocationService {
   const _FakeLocationService(this.location);
 
@@ -61,7 +68,8 @@ class _InMemorySettingsStore implements SettingsStore {
   PrayerSettings settings = const PrayerSettings();
   NotificationSettings notificationSettings = const NotificationSettings();
   AppThemeChoice theme = AppThemeChoice.emerald;
-  AppLocation? location;
+  List<AppLocation> locations = const <AppLocation>[];
+  int activeIndex = 0;
   bool methodSaved = false;
 
   @override
@@ -77,10 +85,14 @@ class _InMemorySettingsStore implements SettingsStore {
   Future<bool> hasSavedMethod() async => methodSaved;
 
   @override
-  Future<AppLocation?> loadLocation() async => location;
+  Future<SavedLocationState> loadLocations() async =>
+      (locations: locations, activeIndex: activeIndex);
 
   @override
-  Future<void> saveLocation(AppLocation value) async => location = value;
+  Future<void> saveLocations(SavedLocationState state) async {
+    locations = state.locations;
+    activeIndex = state.activeIndex;
+  }
 
   @override
   Future<NotificationSettings> loadNotificationSettings() async =>
@@ -184,6 +196,7 @@ Future<
     _FakeNotificationService fake,
     _FakeLocationSearchService search,
     ThemeController themeController,
+    _InMemorySettingsStore store,
   })
 >
 _createController({
@@ -210,6 +223,7 @@ _createController({
     fake: fake,
     search: search,
     themeController: themeController,
+    store: store,
   );
 }
 
@@ -452,7 +466,7 @@ void main() {
 
   test('returning users keep their method on later launches', () async {
     final _InMemorySettingsStore store = _InMemorySettingsStore()
-      ..location = _newYork;
+      ..locations = <AppLocation>[_newYork];
     final PrayerTimesController controller = PrayerTimesController(
       locationService: const _FakeLocationService(_newYork),
       settingsStore: store,
@@ -465,6 +479,172 @@ void main() {
     expect(controller.settings.method, PrayerMethod.muslimWorldLeague);
 
     controller.dispose();
+  });
+
+  test(
+    'setManualLocation adds a second saved location and switches to it',
+    () async {
+      final result = await _createController();
+      expect(result.controller.savedLocations, hasLength(1));
+
+      await result.controller.setManualLocation(_paris);
+
+      expect(result.controller.savedLocations, hasLength(2));
+      expect(result.controller.activeLocationIndex, 1);
+      expect(result.controller.location.name, 'Paris, France');
+      expect(result.store.locations, hasLength(2));
+      expect(result.store.activeIndex, 1);
+
+      result.controller.dispose();
+    },
+  );
+
+  test('re-selecting a stored location switches to it', () async {
+    final result = await _createController();
+    await result.controller.setManualLocation(_paris);
+
+    await result.controller.setManualLocation(_london);
+
+    expect(result.controller.savedLocations, hasLength(2));
+    expect(result.controller.activeLocationIndex, 0);
+    expect(result.controller.location.name, 'London, United Kingdom');
+
+    result.controller.dispose();
+  });
+
+  test(
+    'a new place replaces the active location when both slots are used',
+    () async {
+      final result = await _createController();
+      await result.controller.setManualLocation(_paris);
+
+      const AppLocation berlin = AppLocation(
+        name: 'Berlin, Germany',
+        latitude: 52.52,
+        longitude: 13.405,
+      );
+      await result.controller.setManualLocation(berlin);
+
+      expect(result.controller.savedLocations, hasLength(2));
+      expect(result.controller.location.name, 'Berlin, Germany');
+      expect(
+        result.controller.savedLocations[0].name,
+        'London, United Kingdom',
+      );
+      expect(result.controller.savedLocations[1].name, 'Berlin, Germany');
+
+      result.controller.dispose();
+    },
+  );
+
+  test(
+    'switchLocation shows prayer times for the other saved location',
+    () async {
+      final result = await _createController();
+      await result.controller.setManualLocation(_paris);
+
+      final DateTime parisDhuhr = result.controller.day.schedule.prayers
+          .firstWhere((PrayerTime prayer) => prayer.id == PrayerId.dhuhr)
+          .time;
+
+      await result.controller.switchLocation(0);
+
+      final DateTime londonDhuhr = result.controller.day.schedule.prayers
+          .firstWhere((PrayerTime prayer) => prayer.id == PrayerId.dhuhr)
+          .time;
+      expect(result.controller.activeLocationIndex, 0);
+      expect(result.controller.location.name, 'London, United Kingdom');
+      expect(result.store.activeIndex, 0);
+      expect(londonDhuhr, isNot(parisDhuhr));
+
+      result.controller.dispose();
+    },
+  );
+
+  test('removeLocation deletes the secondary location', () async {
+    final result = await _createController();
+    await result.controller.setManualLocation(_paris);
+
+    await result.controller.removeLocation(1);
+
+    expect(result.controller.savedLocations, hasLength(1));
+    expect(result.controller.location.name, 'London, United Kingdom');
+    expect(result.controller.activeLocationIndex, 0);
+    expect(result.store.locations, hasLength(1));
+    expect(result.store.activeIndex, 0);
+
+    result.controller.dispose();
+  });
+
+  test(
+    'removing the active location falls back to the remaining one',
+    () async {
+      final result = await _createController();
+      await result.controller.setManualLocation(_paris);
+
+      await result.controller.removeLocation(1);
+
+      expect(result.controller.location.name, 'London, United Kingdom');
+      expect(result.controller.savedLocations, hasLength(1));
+
+      result.controller.dispose();
+    },
+  );
+
+  test(
+    'removing the active location switches to the other saved one',
+    () async {
+      final result = await _createController();
+      await result.controller.setManualLocation(_paris);
+      await result.controller.switchLocation(0);
+
+      await result.controller.removeLocation(0);
+
+      expect(result.controller.savedLocations, hasLength(1));
+      expect(result.controller.activeLocationIndex, 0);
+      expect(result.controller.location.name, 'Paris, France');
+      expect(result.store.activeIndex, 0);
+
+      result.controller.dispose();
+    },
+  );
+
+  test('the last remaining location cannot be removed', () async {
+    final result = await _createController();
+
+    await result.controller.removeLocation(0);
+
+    expect(result.controller.savedLocations, hasLength(1));
+    expect(result.controller.location.name, 'London, United Kingdom');
+
+    result.controller.dispose();
+  });
+
+  testWidgets('the location sheet offers adding a second location', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+
+    await tester.pumpWidget(
+      AthanApp(
+        controller: result.controller,
+        themeController: result.themeController,
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add second location'), findsOneWidget);
+
+    await tester.tap(find.text('Add second location'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enter location'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    result.controller.dispose();
   });
 
   testWidgets('settings can disable all prayer reminders', (

@@ -53,7 +53,8 @@ class PrayerTimesController extends ChangeNotifier {
   final PrayerTimesService _prayerTimesService;
   final DateTime Function() _clock;
 
-  AppLocation _location = AppLocation.makkah;
+  List<AppLocation> _savedLocations = const <AppLocation>[];
+  int _activeLocationIndex = 0;
   PrayerSettings _settings = const PrayerSettings();
   NotificationSettings _notifications = const NotificationSettings();
   PrayerDay? _day;
@@ -70,7 +71,19 @@ class PrayerTimesController extends ChangeNotifier {
   bool _disposed = false;
 
   DateTime get now => _now;
-  AppLocation get location => _location;
+  AppLocation get location {
+    if (_savedLocations.isEmpty) return AppLocation.makkah;
+    return _savedLocations[_activeLocationIndex.clamp(
+      0,
+      _savedLocations.length - 1,
+    )];
+  }
+
+  /// The stored locations the user can switch between (at most two).
+  List<AppLocation> get savedLocations => List.unmodifiable(_savedLocations);
+
+  /// The index into [savedLocations] currently shown.
+  int get activeLocationIndex => _activeLocationIndex;
   PrayerSettings get settings => _settings;
   NotificationSettings get notifications => _notifications;
   PrayerDay get day => _day ??= _computeDay();
@@ -86,9 +99,10 @@ class PrayerTimesController extends ChangeNotifier {
     try {
       _settings = await _settingsStore.loadSettings();
       _notifications = await _settingsStore.loadNotificationSettings();
-      final AppLocation? savedLocation = await _settingsStore.loadLocation();
-      _isFirstLaunch = savedLocation == null;
-      if (savedLocation != null) _location = savedLocation;
+      final SavedLocationState saved = await _settingsStore.loadLocations();
+      _isFirstLaunch = saved.locations.isEmpty;
+      _savedLocations = saved.locations;
+      _activeLocationIndex = saved.activeIndex;
     } catch (error) {
       debugPrint('Failed to load saved settings: $error');
     }
@@ -100,7 +114,7 @@ class PrayerTimesController extends ChangeNotifier {
 
     await _prepareNotifications();
 
-    if (_location.isResolved) {
+    if (_savedLocations.isNotEmpty) {
       await syncNotifications();
     } else {
       await refreshLocation();
@@ -115,10 +129,10 @@ class PrayerTimesController extends ChangeNotifier {
 
     try {
       final AppLocation location = await _locationService.currentLocation();
-      _location = location;
+      _upsertLocation(location);
       _day = null;
       await _applySuggestedMethod();
-      await _settingsStore.saveLocation(location);
+      await _saveLocations();
     } on LocationException catch (error) {
       _locationError = error.message;
     } catch (error) {
@@ -137,25 +151,97 @@ class PrayerTimesController extends ChangeNotifier {
       _locationSearchService.search(query);
 
   /// Uses a location chosen by the user instead of the device's position.
+  ///
+  /// A place that is already stored is switched to; otherwise it fills the
+  /// free slot, or replaces the active location when both slots are in use.
   Future<void> setManualLocation(AppLocation location) async {
-    _location = location.copyWith(isResolved: true);
+    _upsertLocation(location.copyWith(isResolved: true));
     _locationError = null;
     _day = null;
     await _applySuggestedMethod();
     _notify();
-    await _settingsStore.saveLocation(_location);
+    await _saveLocations();
     await syncNotifications();
+  }
+
+  /// Shows prayer times for the stored location at [index].
+  Future<void> switchLocation(int index) async {
+    if (index < 0 || index >= _savedLocations.length) return;
+    if (index == _activeLocationIndex) return;
+    _activeLocationIndex = index;
+    _locationError = null;
+    _day = null;
+    _notify();
+    await _saveLocations();
+    await syncNotifications();
+  }
+
+  /// Removes the stored location at [index], keeping at least one location.
+  /// If the removed one was shown, the remaining location becomes active.
+  Future<void> removeLocation(int index) async {
+    if (index < 0 || index >= _savedLocations.length) return;
+    if (_savedLocations.length <= 1) return;
+    _savedLocations = List<AppLocation>.of(_savedLocations)..removeAt(index);
+    if (_activeLocationIndex >= _savedLocations.length) {
+      _activeLocationIndex = _savedLocations.length - 1;
+    } else if (index < _activeLocationIndex) {
+      _activeLocationIndex--;
+    }
+    _day = null;
+    _notify();
+    await _saveLocations();
+    await syncNotifications();
+  }
+
+  /// Stores [location] in the first free slot, or replaces the active entry
+  /// when both slots are used. Re-selecting a stored place just switches to
+  /// it instead of duplicating it.
+  void _upsertLocation(AppLocation location) {
+    final int existing = _indexOfSamePlace(location);
+    if (existing >= 0) {
+      final List<AppLocation> updated = List<AppLocation>.of(_savedLocations);
+      updated[existing] = location;
+      _savedLocations = updated;
+      _activeLocationIndex = existing;
+      return;
+    }
+    if (_savedLocations.length < 2) {
+      _savedLocations = List<AppLocation>.of(_savedLocations)..add(location);
+      _activeLocationIndex = _savedLocations.length - 1;
+      return;
+    }
+    final List<AppLocation> updated = List<AppLocation>.of(_savedLocations);
+    updated[_activeLocationIndex] = location;
+    _savedLocations = updated;
+  }
+
+  int _indexOfSamePlace(AppLocation location) {
+    for (int i = 0; i < _savedLocations.length; i++) {
+      final AppLocation saved = _savedLocations[i];
+      if ((saved.latitude - location.latitude).abs() < 0.01 &&
+          (saved.longitude - location.longitude).abs() < 0.01) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  Future<void> _saveLocations() async {
+    await _settingsStore.saveLocations((
+      locations: _savedLocations,
+      activeIndex: _activeLocationIndex,
+    ));
   }
 
   /// On the first launch, once a location is known (from the device or picked
   /// manually), selects the calculation method commonly used there, such as
   /// ISNA in North America. Never overrides a method the user already chose.
   Future<void> _applySuggestedMethod() async {
-    if (!_isFirstLaunch || !_location.isResolved) return;
+    if (!_isFirstLaunch || !location.isResolved) return;
     _isFirstLaunch = false;
     try {
       if (await _settingsStore.hasSavedMethod()) return;
-      final PrayerMethod suggested = suggestedMethodFor(_location);
+      final PrayerMethod suggested = suggestedMethodFor(location);
       if (suggested == _settings.method) return;
       _settings = _settings.copyWith(method: suggested);
       _day = null;
@@ -247,7 +333,7 @@ class PrayerTimesController extends ChangeNotifier {
 
   /// Rebuilds the rolling window of scheduled prayer reminders.
   Future<void> syncNotifications() async {
-    if (_disposed || !_notificationsReady || !_location.isResolved) {
+    if (_disposed || !_notificationsReady || !location.isResolved) {
       return;
     }
     if (_isSyncingNotifications) {
@@ -262,7 +348,7 @@ class PrayerTimesController extends ChangeNotifier {
         final List<PrayerNotification> notifications =
             PrayerNotificationBuilder.build(
               now: _now,
-              location: _location,
+              location: location,
               settings: _settings,
               notificationSettings: _notifications,
               prayerTimesService: _prayerTimesService,
@@ -296,7 +382,7 @@ class PrayerTimesController extends ChangeNotifier {
 
   PrayerDay _computeDay() => _prayerTimesService.dayFor(
     now: _now,
-    location: _location,
+    location: location,
     settings: _settings,
   );
 

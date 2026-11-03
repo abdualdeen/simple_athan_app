@@ -144,6 +144,21 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
             'Examples: London, United Kingdom · 51.5074, -0.1278',
             style: TextStyle(fontSize: 12, color: palette.inkMuted),
           ),
+          if (widget.controller.savedLocations.length == 1) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              'A place you choose is saved as a second location you can switch '
+              'to from the home screen.',
+              style: TextStyle(fontSize: 12, color: palette.inkMuted),
+            ),
+          ] else if (widget.controller.savedLocations.length >= 2) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              'Both saved locations are in use. A new place replaces '
+              '${widget.controller.location.name}.',
+              style: TextStyle(fontSize: 12, color: palette.inkMuted),
+            ),
+          ],
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,

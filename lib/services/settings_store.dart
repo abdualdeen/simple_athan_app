@@ -7,6 +7,9 @@ import '../models/prayer.dart';
 import '../models/prayer_settings.dart';
 import '../theme/app_theme.dart';
 
+/// The saved locations and the index of the active one.
+typedef SavedLocationState = ({List<AppLocation> locations, int activeIndex});
+
 abstract interface class SettingsStore {
   Future<PrayerSettings> loadSettings();
   Future<void> saveSettings(PrayerSettings settings);
@@ -14,8 +17,10 @@ abstract interface class SettingsStore {
   /// Whether a calculation method has been saved before, either by the user
   /// or by the first-launch region suggestion.
   Future<bool> hasSavedMethod();
-  Future<AppLocation?> loadLocation();
-  Future<void> saveLocation(AppLocation location);
+
+  /// The saved locations (at most two) and which one is active.
+  Future<SavedLocationState> loadLocations();
+  Future<void> saveLocations(SavedLocationState state);
   Future<NotificationSettings> loadNotificationSettings();
   Future<void> saveNotificationSettings(NotificationSettings settings);
   Future<AppThemeChoice> loadTheme();
@@ -28,6 +33,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   static const String _locationNameKey = 'location_name';
   static const String _locationLatitudeKey = 'location_latitude';
   static const String _locationLongitudeKey = 'location_longitude';
+  static const String _activeLocationIndexKey = 'active_location_index';
   static const String _notificationsEnabledKey = 'notifications_enabled';
   static const String _mutedPrayersKey = 'muted_prayers';
   static const String _notificationSoundKey = 'notification_sound';
@@ -56,8 +62,42 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   }
 
   @override
-  Future<AppLocation?> loadLocation() async {
+  Future<SavedLocationState> loadLocations() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<AppLocation> locations = <AppLocation?>[
+      _readSavedSlot(prefs, 0),
+      _readSavedSlot(prefs, 1),
+    ].whereType<AppLocation>().toList();
+
+    if (locations.isEmpty) {
+      // Installs from before multiple locations existed stored a single
+      // location under the legacy keys.
+      final AppLocation? legacy = _readLegacyLocation(prefs);
+      if (legacy == null) return (locations: locations, activeIndex: 0);
+      return (locations: <AppLocation>[legacy], activeIndex: 0);
+    }
+
+    final int index = prefs.getInt(_activeLocationIndexKey) ?? 0;
+    return (
+      locations: locations,
+      activeIndex: index.clamp(0, locations.length - 1),
+    );
+  }
+
+  AppLocation? _readSavedSlot(SharedPreferences prefs, int slot) {
+    final String? name = prefs.getString('saved_location_${slot}_name');
+    final double? latitude = prefs.getDouble('saved_location_${slot}_lat');
+    final double? longitude = prefs.getDouble('saved_location_${slot}_lng');
+    if (name == null || latitude == null || longitude == null) return null;
+    return AppLocation(
+      name: name,
+      latitude: latitude,
+      longitude: longitude,
+      isResolved: true,
+    );
+  }
+
+  AppLocation? _readLegacyLocation(SharedPreferences prefs) {
     final String? name = prefs.getString(_locationNameKey);
     final double? latitude = prefs.getDouble(_locationLatitudeKey);
     final double? longitude = prefs.getDouble(_locationLongitudeKey);
@@ -71,11 +111,22 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   }
 
   @override
-  Future<void> saveLocation(AppLocation location) async {
+  Future<void> saveLocations(SavedLocationState state) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_locationNameKey, location.name);
-    await prefs.setDouble(_locationLatitudeKey, location.latitude);
-    await prefs.setDouble(_locationLongitudeKey, location.longitude);
+    for (int slot = 0; slot < 2; slot++) {
+      final String prefix = 'saved_location_${slot}_';
+      if (slot < state.locations.length) {
+        final AppLocation location = state.locations[slot];
+        await prefs.setString('${prefix}name', location.name);
+        await prefs.setDouble('${prefix}lat', location.latitude);
+        await prefs.setDouble('${prefix}lng', location.longitude);
+      } else {
+        await prefs.remove('${prefix}name');
+        await prefs.remove('${prefix}lat');
+        await prefs.remove('${prefix}lng');
+      }
+    }
+    await prefs.setInt(_activeLocationIndexKey, state.activeIndex);
   }
 
   @override
