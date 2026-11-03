@@ -72,21 +72,21 @@ class DeviceLocationService implements LocationService {
       );
     }
 
-    // Reverse geocoding only supplies a display name, so it must never block
-    // the location itself. The platform geocoder can wait indefinitely when the
-    // device has no geocoder backend or no network access, so fall back to
-    // coordinates in that case.
-    final String name =
-        await placeNameFor(
-          position.latitude,
-          position.longitude,
-        ).timeout(const Duration(seconds: 5), onTimeout: () => null) ??
-        coordinateLabel(position.latitude, position.longitude);
+    // Reverse geocoding only supplies a display name and country, so it must
+    // never block the location itself. The platform geocoder can wait
+    // indefinitely when the device has no geocoder backend or no network
+    // access, so fall back to coordinates in that case.
+    final PlaceInfo info =
+        await placeInfoFor(position.latitude, position.longitude).timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => (name: null, countryCode: null),
+        );
 
     return AppLocation(
-      name: name,
+      name: info.name ?? coordinateLabel(position.latitude, position.longitude),
       latitude: position.latitude,
       longitude: position.longitude,
+      countryCode: info.countryCode,
       isResolved: true,
     );
   }

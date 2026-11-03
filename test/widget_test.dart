@@ -31,6 +31,14 @@ const AppLocation _london = AppLocation(
   isResolved: true,
 );
 
+const AppLocation _newYork = AppLocation(
+  name: 'New York, United States',
+  latitude: 40.7128,
+  longitude: -74.006,
+  countryCode: 'US',
+  isResolved: true,
+);
+
 class _FakeLocationService implements LocationService {
   const _FakeLocationService(this.location);
 
@@ -40,17 +48,33 @@ class _FakeLocationService implements LocationService {
   Future<AppLocation> currentLocation() async => location;
 }
 
+class _DeniedLocationService implements LocationService {
+  const _DeniedLocationService();
+
+  @override
+  Future<AppLocation> currentLocation() async {
+    throw const LocationException('Location permission was denied.');
+  }
+}
+
 class _InMemorySettingsStore implements SettingsStore {
   PrayerSettings settings = const PrayerSettings();
   NotificationSettings notificationSettings = const NotificationSettings();
   AppThemeChoice theme = AppThemeChoice.emerald;
   AppLocation? location;
+  bool methodSaved = false;
 
   @override
   Future<PrayerSettings> loadSettings() async => settings;
 
   @override
-  Future<void> saveSettings(PrayerSettings value) async => settings = value;
+  Future<void> saveSettings(PrayerSettings value) async {
+    settings = value;
+    methodSaved = true;
+  }
+
+  @override
+  Future<bool> hasSavedMethod() async => methodSaved;
 
   @override
   Future<AppLocation?> loadLocation() async => location;
@@ -358,6 +382,89 @@ void main() {
     expect(result.fake.scheduled, isNotEmpty);
 
     result.controller.dispose();
+  });
+
+  test('first launch picks ISNA for a device location in the US', () async {
+    const AppLocation newYork = AppLocation(
+      name: 'New York, United States',
+      latitude: 40.7128,
+      longitude: -74.006,
+      countryCode: 'US',
+      isResolved: true,
+    );
+    final _InMemorySettingsStore store = _InMemorySettingsStore();
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(newYork),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+
+    await controller.initialize();
+
+    expect(controller.settings.method, PrayerMethod.northAmerica);
+    expect(store.settings.method, PrayerMethod.northAmerica);
+
+    controller.dispose();
+  });
+
+  test('first launch manual location picks the regional method', () async {
+    final _InMemorySettingsStore store = _InMemorySettingsStore();
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _DeniedLocationService(),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+    await controller.initialize();
+
+    const AppLocation makkah = AppLocation(
+      name: 'Makkah, Saudi Arabia',
+      latitude: 21.4225,
+      longitude: 39.8262,
+      countryCode: 'SA',
+    );
+    await controller.setManualLocation(makkah);
+
+    expect(controller.settings.method, PrayerMethod.ummAlQura);
+    expect(store.settings.method, PrayerMethod.ummAlQura);
+
+    controller.dispose();
+  });
+
+  test('a method chosen by the user is never overridden', () async {
+    final _InMemorySettingsStore store = _InMemorySettingsStore()
+      ..settings = const PrayerSettings(method: PrayerMethod.egyptian)
+      ..methodSaved = true;
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_newYork),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+
+    await controller.initialize();
+
+    expect(controller.settings.method, PrayerMethod.egyptian);
+
+    controller.dispose();
+  });
+
+  test('returning users keep their method on later launches', () async {
+    final _InMemorySettingsStore store = _InMemorySettingsStore()
+      ..location = _newYork;
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_newYork),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+
+    await controller.initialize();
+
+    expect(controller.settings.method, PrayerMethod.muslimWorldLeague);
+
+    controller.dispose();
   });
 
   testWidgets('settings can disable all prayer reminders', (

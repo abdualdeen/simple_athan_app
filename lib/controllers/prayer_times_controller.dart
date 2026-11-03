@@ -15,6 +15,7 @@ import '../services/notification_service.dart';
 import '../services/prayer_notification_builder.dart';
 import '../services/prayer_times_service.dart';
 import '../services/settings_store.dart';
+import '../utils/suggested_method.dart';
 
 /// Owns the app's location, calculation settings, notifications, and the
 /// current prayer day.
@@ -62,6 +63,7 @@ class PrayerTimesController extends ChangeNotifier {
   bool _exactAlarmsAllowed = false;
   bool _isSyncingNotifications = false;
   bool _syncPending = false;
+  bool _isFirstLaunch = false;
   String? _locationError;
   Timer? _ticker;
   DateTime _now;
@@ -85,6 +87,7 @@ class PrayerTimesController extends ChangeNotifier {
       _settings = await _settingsStore.loadSettings();
       _notifications = await _settingsStore.loadNotificationSettings();
       final AppLocation? savedLocation = await _settingsStore.loadLocation();
+      _isFirstLaunch = savedLocation == null;
       if (savedLocation != null) _location = savedLocation;
     } catch (error) {
       debugPrint('Failed to load saved settings: $error');
@@ -114,6 +117,7 @@ class PrayerTimesController extends ChangeNotifier {
       final AppLocation location = await _locationService.currentLocation();
       _location = location;
       _day = null;
+      await _applySuggestedMethod();
       await _settingsStore.saveLocation(location);
     } on LocationException catch (error) {
       _locationError = error.message;
@@ -137,9 +141,29 @@ class PrayerTimesController extends ChangeNotifier {
     _location = location.copyWith(isResolved: true);
     _locationError = null;
     _day = null;
+    await _applySuggestedMethod();
     _notify();
     await _settingsStore.saveLocation(_location);
     await syncNotifications();
+  }
+
+  /// On the first launch, once a location is known (from the device or picked
+  /// manually), selects the calculation method commonly used there, such as
+  /// ISNA in North America. Never overrides a method the user already chose.
+  Future<void> _applySuggestedMethod() async {
+    if (!_isFirstLaunch || !_location.isResolved) return;
+    _isFirstLaunch = false;
+    try {
+      if (await _settingsStore.hasSavedMethod()) return;
+      final PrayerMethod suggested = suggestedMethodFor(_location);
+      if (suggested == _settings.method) return;
+      _settings = _settings.copyWith(method: suggested);
+      _day = null;
+      await _settingsStore.saveSettings(_settings);
+      _notify();
+    } catch (error) {
+      debugPrint('Could not apply the suggested calculation method: $error');
+    }
   }
 
   Future<void> updateSettings(PrayerSettings settings) async {

@@ -22,12 +22,15 @@ class GeocodingLocationSearchService implements LocationSearchService {
 
     final AppLocation? coordinates = parseCoordinates(trimmed);
     if (coordinates != null) {
-      final String? name = await placeNameFor(
+      final PlaceInfo info = await placeInfoFor(
         coordinates.latitude,
         coordinates.longitude,
       );
       return <AppLocation>[
-        coordinates.copyWith(name: name ?? coordinates.name),
+        coordinates.copyWith(
+          name: info.name ?? coordinates.name,
+          countryCode: info.countryCode,
+        ),
       ];
     }
 
@@ -36,12 +39,16 @@ class GeocodingLocationSearchService implements LocationSearchService {
     );
     final List<AppLocation> results = <AppLocation>[];
     for (final Location match in matches.take(5)) {
-      final String? name = await placeNameFor(match.latitude, match.longitude);
+      final PlaceInfo info = await placeInfoFor(
+        match.latitude,
+        match.longitude,
+      );
       results.add(
         AppLocation(
-          name: name ?? trimmed,
+          name: info.name ?? trimmed,
           latitude: match.latitude,
           longitude: match.longitude,
+          countryCode: info.countryCode,
           isResolved: true,
         ),
       );

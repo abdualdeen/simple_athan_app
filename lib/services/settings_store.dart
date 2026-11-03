@@ -10,6 +10,10 @@ import '../theme/app_theme.dart';
 abstract interface class SettingsStore {
   Future<PrayerSettings> loadSettings();
   Future<void> saveSettings(PrayerSettings settings);
+
+  /// Whether a calculation method has been saved before, either by the user
+  /// or by the first-launch region suggestion.
+  Future<bool> hasSavedMethod();
   Future<AppLocation?> loadLocation();
   Future<void> saveLocation(AppLocation location);
   Future<NotificationSettings> loadNotificationSettings();
@@ -43,6 +47,12 @@ class SharedPreferencesSettingsStore implements SettingsStore {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_methodKey, settings.method.name);
     await prefs.setString(_madhabKey, settings.madhab.name);
+  }
+
+  @override
+  Future<bool> hasSavedMethod() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_methodKey) != null;
   }
 
   @override

@@ -4,18 +4,28 @@ import 'package:geocoding/geocoding.dart';
 String coordinateLabel(double latitude, double longitude) =>
     '${latitude.toStringAsFixed(3)}°, ${longitude.toStringAsFixed(3)}°';
 
-/// Best-effort reverse geocoding used for display names. Returns `null` when
-/// the platform geocoder is unavailable or has no result.
-Future<String?> placeNameFor(double latitude, double longitude) async {
+/// Reverse-geocoded place information: a display name and the ISO country
+/// code. Both are best-effort and `null` when the platform geocoder is
+/// unavailable or has no result.
+typedef PlaceInfo = ({String? name, String? countryCode});
+
+/// Best-effort reverse geocoding used for display names and country lookup.
+Future<PlaceInfo> placeInfoFor(double latitude, double longitude) async {
   try {
     final List<Placemark> placemarks = await Geocoding()
         .placemarkFromCoordinates(latitude, longitude);
-    if (placemarks.isEmpty) return null;
-    return formatPlacemark(placemarks.first);
+    if (placemarks.isEmpty) return (name: null, countryCode: null);
+    final Placemark place = placemarks.first;
+    return (name: formatPlacemark(place), countryCode: place.isoCountryCode);
   } catch (_) {
-    return null;
+    return (name: null, countryCode: null);
   }
 }
+
+/// Best-effort reverse geocoding used for display names. Returns `null` when
+/// the platform geocoder is unavailable or has no result.
+Future<String?> placeNameFor(double latitude, double longitude) async =>
+    (await placeInfoFor(latitude, longitude)).name;
 
 /// Builds `city, state, country` from a placemark, skipping repeated parts.
 ///
