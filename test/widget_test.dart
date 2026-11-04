@@ -901,6 +901,70 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('the sakura theme shows the decorative header scene', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    await result.themeController.select(AppThemeChoice.sakura);
+
+    await tester.pumpWidget(
+      AthanApp(
+        controller: result.controller,
+        themeController: result.themeController,
+      ),
+    );
+    // Advance a few frames of the repeating petal animation; the scene never
+    // settles, so pumpAndSettle must not be used here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('Assalamu Alaikum'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is CustomPaint &&
+            widget.painter != null &&
+            widget.painter.runtimeType.toString() == '_SakuraScenePainter',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox());
+    result.controller.dispose();
+  });
+
+  testWidgets('the olive theme shows the decorative header scene', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    await result.themeController.select(AppThemeChoice.olive);
+
+    await tester.pumpWidget(
+      AthanApp(
+        controller: result.controller,
+        themeController: result.themeController,
+      ),
+    );
+    // Advance a few frames of the repeating animation; the scene never
+    // settles, so pumpAndSettle must not be used here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('Assalamu Alaikum'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is CustomPaint &&
+            widget.painter != null &&
+            widget.painter.runtimeType.toString() == '_OliveScenePainter',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox());
+    result.controller.dispose();
+  });
+
   testWidgets('settings can disable all prayer reminders', (
     WidgetTester tester,
   ) async {

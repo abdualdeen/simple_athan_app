@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+/// The decorative scene shown in the home header.
+enum AppMotif {
+  /// Crescent and sparkles, used by every theme except sakura and olive.
+  crescent,
+
+  /// Blossom tree, drifting petals and a crescent moon.
+  sakura,
+
+  /// Olive branches, drifting leaves and a sun.
+  olive,
+}
+
 enum AppThemeChoice {
   emerald('Emerald'),
   dark('Dark'),
@@ -22,6 +34,7 @@ enum AppThemeChoice {
 class AppPalette extends ThemeExtension<AppPalette> {
   const AppPalette({
     required this.brightness,
+    this.motif = AppMotif.crescent,
     required this.primary,
     required this.primaryDeep,
     required this.primarySoft,
@@ -38,6 +51,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
   });
 
   final Brightness brightness;
+
+  /// The decorative header scene that matches this theme.
+  final AppMotif motif;
   final Color primary;
   final Color primaryDeep;
   final Color primarySoft;
@@ -64,6 +80,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     if (other == null) return this;
     return AppPalette(
       brightness: t < 0.5 ? brightness : other.brightness,
+      motif: t < 0.5 ? motif : other.motif,
       primary: Color.lerp(primary, other.primary, t)!,
       primaryDeep: Color.lerp(primaryDeep, other.primaryDeep, t)!,
       primarySoft: Color.lerp(primarySoft, other.primarySoft, t)!,
@@ -118,6 +135,7 @@ abstract final class AppPalettes {
 
   static const AppPalette olive = AppPalette(
     brightness: Brightness.light,
+    motif: AppMotif.olive,
     primary: Color(0xFF5B6B3A),
     primaryDeep: Color(0xFF3A4524),
     primarySoft: Color(0xFF6F7F4A),
@@ -135,6 +153,7 @@ abstract final class AppPalettes {
 
   static const AppPalette sakura = AppPalette(
     brightness: Brightness.light,
+    motif: AppMotif.sakura,
     primary: Color(0xFFA84463),
     primaryDeep: Color(0xFF6E2A44),
     primarySoft: Color(0xFFC05A78),

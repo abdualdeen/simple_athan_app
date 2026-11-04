@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_format.dart';
 import '../utils/hijri_date.dart';
+import 'olive_scene.dart';
+import 'sakura_scene.dart';
 
 /// Gradient header with the menu button, current location, and both the
 /// Gregorian and Hijri dates.
@@ -40,9 +42,13 @@ class HomeHeader extends StatelessWidget {
         children: <Widget>[
           Positioned.fill(
             child: IgnorePointer(
-              child: CustomPaint(
-                painter: _HeaderPatternPainter(color: palette.accent),
-              ),
+              child: switch (palette.motif) {
+                AppMotif.sakura => const SakuraScene(),
+                AppMotif.olive => const OliveScene(),
+                AppMotif.crescent => CustomPaint(
+                  painter: _HeaderPatternPainter(color: palette.accent),
+                ),
+              },
             ),
           ),
           SafeArea(
