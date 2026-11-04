@@ -10,6 +10,7 @@ import '../widgets/app_drawer.dart';
 import '../widgets/home_header.dart';
 import '../widgets/next_prayer_card.dart';
 import '../widgets/prayer_list.dart';
+import '../widgets/startup_view.dart';
 import 'manual_location_screen.dart';
 import 'settings_screen.dart';
 
@@ -99,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       listenable: widget.controller,
       builder: (BuildContext context, Widget? _) {
         final PrayerTimesController controller = widget.controller;
-        if (controller.isInitializing) return const _StartupView();
+        if (controller.isInitializing) return const StartupView();
 
         return Scaffold(
           key: _scaffoldKey,
@@ -152,60 +153,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         );
       },
-    );
-  }
-}
-
-class _StartupView extends StatelessWidget {
-  const _StartupView();
-
-  @override
-  Widget build(BuildContext context) {
-    final AppPalette palette = context.palette;
-    return Scaffold(
-      backgroundColor: palette.primaryDeep,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: palette.accent.withValues(alpha: 0.16),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: palette.accent.withValues(alpha: 0.5),
-                ),
-              ),
-              child: Icon(
-                Icons.nightlight_round,
-                color: palette.accentSoft,
-                size: 34,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Athan',
-              style: TextStyle(
-                color: palette.onPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(palette.accentSoft),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

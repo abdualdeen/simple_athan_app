@@ -71,6 +71,7 @@ class _InMemorySettingsStore implements SettingsStore {
   List<AppLocation> locations = const <AppLocation>[];
   int activeIndex = 0;
   bool methodSaved = false;
+  bool onboardingComplete = false;
 
   @override
   Future<PrayerSettings> loadSettings() async => settings;
@@ -93,6 +94,13 @@ class _InMemorySettingsStore implements SettingsStore {
     locations = state.locations;
     activeIndex = state.activeIndex;
   }
+
+  @override
+  Future<bool> loadOnboardingComplete() async => onboardingComplete;
+
+  @override
+  Future<void> saveOnboardingComplete(bool value) async =>
+      onboardingComplete = value;
 
   @override
   Future<NotificationSettings> loadNotificationSettings() async =>
@@ -136,6 +144,7 @@ class _FakeNotificationService implements NotificationService {
   bool exactAlarmsAllowed = true;
   bool cancelled = false;
   int testNotifications = 0;
+  int permissionRequests = 0;
   List<PrayerNotification> scheduled = <PrayerNotification>[];
   AthanSound? lastScheduledSound;
 
@@ -143,7 +152,10 @@ class _FakeNotificationService implements NotificationService {
   Future<void> initialize() async {}
 
   @override
-  Future<bool> requestPermission() async => permissionGranted;
+  Future<bool> requestPermission() async {
+    permissionRequests++;
+    return permissionGranted;
+  }
 
   @override
   Future<bool> canScheduleExactNotifications() async => exactAlarmsAllowed;
@@ -207,7 +219,8 @@ _createController({
   final _FakeLocationSearchService search = _FakeLocationSearchService(
     searchResults,
   );
-  final _InMemorySettingsStore store = _InMemorySettingsStore();
+  final _InMemorySettingsStore store = _InMemorySettingsStore()
+    ..onboardingComplete = true;
   final PrayerTimesController controller = PrayerTimesController(
     locationService: const _FakeLocationService(_london),
     settingsStore: store,
@@ -415,6 +428,8 @@ void main() {
     );
 
     await controller.initialize();
+    // The intro's location step resolves the position.
+    await controller.refreshLocation();
 
     expect(controller.settings.method, PrayerMethod.northAmerica);
     expect(store.settings.method, PrayerMethod.northAmerica);
@@ -458,6 +473,7 @@ void main() {
     );
 
     await controller.initialize();
+    await controller.refreshLocation();
 
     expect(controller.settings.method, PrayerMethod.egyptian);
 
@@ -480,6 +496,92 @@ void main() {
 
     controller.dispose();
   });
+
+  test('completing the intro persists the flag', () async {
+    final _InMemorySettingsStore store = _InMemorySettingsStore();
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _DeniedLocationService(),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+
+    await controller.initialize();
+    expect(controller.isOnboardingComplete, isFalse);
+
+    await controller.completeOnboarding();
+
+    expect(controller.isOnboardingComplete, isTrue);
+    expect(store.onboardingComplete, isTrue);
+
+    controller.dispose();
+  });
+
+  test('users with a saved location skip the intro without the flag', () async {
+    final _InMemorySettingsStore store = _InMemorySettingsStore()
+      ..locations = <AppLocation>[_newYork];
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_newYork),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+
+    await controller.initialize();
+
+    expect(controller.isOnboardingComplete, isTrue);
+
+    controller.dispose();
+  });
+
+  test(
+    'the notification permission is only requested from the intro button',
+    () async {
+      final _InMemorySettingsStore store = _InMemorySettingsStore();
+      final _FakeNotificationService fake = _FakeNotificationService();
+      final PrayerTimesController controller = PrayerTimesController(
+        locationService: const _DeniedLocationService(),
+        settingsStore: store,
+        notificationService: fake,
+        clock: _midMorning,
+      );
+
+      await controller.initialize();
+
+      // Reminders default to enabled, but a first launch must not prompt.
+      expect(controller.notifications.enabled, isTrue);
+      expect(fake.permissionRequests, 0);
+
+      // The intro's enable button triggers the system dialog.
+      await controller.setNotificationsEnabled(true);
+      expect(fake.permissionRequests, 1);
+      expect(controller.notificationsReady, isTrue);
+
+      controller.dispose();
+    },
+  );
+
+  test(
+    'set-up users are asked for the notification permission at launch',
+    () async {
+      final _InMemorySettingsStore store = _InMemorySettingsStore()
+        ..onboardingComplete = true;
+      final _FakeNotificationService fake = _FakeNotificationService();
+      final PrayerTimesController controller = PrayerTimesController(
+        locationService: const _FakeLocationService(_newYork),
+        settingsStore: store,
+        notificationService: fake,
+        clock: _midMorning,
+      );
+
+      await controller.initialize();
+
+      expect(fake.permissionRequests, 1);
+      expect(controller.notificationsReady, isTrue);
+
+      controller.dispose();
+    },
+  );
 
   test(
     'setManualLocation adds a second saved location and switches to it',
@@ -645,6 +747,73 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     result.controller.dispose();
+  });
+
+  testWidgets('first launch shows the intro and completes setup', (
+    WidgetTester tester,
+  ) async {
+    final DateTime now = _midMorning();
+    final _FakeNotificationService fake = _FakeNotificationService();
+    final _InMemorySettingsStore store = _InMemorySettingsStore();
+    final _FakeLocationSearchService search = _FakeLocationSearchService(
+      const <AppLocation>[_paris],
+    );
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_london),
+      settingsStore: store,
+      notificationService: fake,
+      locationSearchService: search,
+      clock: () => now,
+    );
+    final ThemeController themeController = ThemeController(
+      settingsStore: store,
+    );
+    await controller.initialize();
+    await themeController.initialize();
+
+    await tester.pumpWidget(
+      AthanApp(controller: controller, themeController: themeController),
+    );
+    await tester.pump();
+
+    // Welcome step.
+    expect(find.text('Welcome to Athan'), findsOneWidget);
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
+
+    // Notifications step.
+    expect(find.text('Prayer reminders'), findsOneWidget);
+    await tester.tap(find.text('Not now'));
+    await tester.pumpAndSettle();
+    expect(controller.notifications.enabled, isFalse);
+
+    // Location step: enter a place manually.
+    expect(find.text('Your location'), findsOneWidget);
+    await tester.tap(find.text('Enter it manually'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Paris');
+    await tester.tap(find.text('Search'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 10));
+    await tester.tap(find.text('Paris, France'));
+    await tester.pumpAndSettle();
+
+    // Theme step.
+    expect(find.text('Pick a theme'), findsOneWidget);
+    await tester.tap(find.text('Sky'));
+    await tester.pump();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // The home screen shows the chosen location and theme.
+    expect(find.text('Paris, France'), findsOneWidget);
+    expect(controller.isOnboardingComplete, isTrue);
+    expect(store.onboardingComplete, isTrue);
+    expect(themeController.choice, AppThemeChoice.sky);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
   });
 
   testWidgets('settings can disable all prayer reminders', (

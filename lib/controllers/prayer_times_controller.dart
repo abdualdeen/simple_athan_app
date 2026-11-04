@@ -65,6 +65,7 @@ class PrayerTimesController extends ChangeNotifier {
   bool _isSyncingNotifications = false;
   bool _syncPending = false;
   bool _isFirstLaunch = false;
+  bool _onboardingComplete = false;
   String? _locationError;
   Timer? _ticker;
   DateTime _now;
@@ -93,6 +94,10 @@ class PrayerTimesController extends ChangeNotifier {
   bool get exactAlarmsAllowed => _exactAlarmsAllowed;
   String? get locationError => _locationError;
 
+  /// Whether the first-launch intro has been finished. Users with a saved
+  /// location from before the intro existed count as complete.
+  bool get isOnboardingComplete => _onboardingComplete;
+
   /// Loads saved settings and location, then asks the device for a fresh
   /// position when nothing has been saved yet.
   Future<void> initialize() async {
@@ -103,6 +108,9 @@ class PrayerTimesController extends ChangeNotifier {
       _isFirstLaunch = saved.locations.isEmpty;
       _savedLocations = saved.locations;
       _activeLocationIndex = saved.activeIndex;
+      _onboardingComplete =
+          _savedLocations.isNotEmpty ||
+          await _settingsStore.loadOnboardingComplete();
     } catch (error) {
       debugPrint('Failed to load saved settings: $error');
     }
@@ -116,7 +124,22 @@ class PrayerTimesController extends ChangeNotifier {
 
     if (_savedLocations.isNotEmpty) {
       await syncNotifications();
-    } else {
+    } else if (_onboardingComplete) {
+      await refreshLocation();
+    }
+  }
+
+  /// Marks the first-launch intro as finished. Locations set during the intro
+  /// have already been resolved; if not, fetches one now.
+  Future<void> completeOnboarding() async {
+    _onboardingComplete = true;
+    _notify();
+    try {
+      await _settingsStore.saveOnboardingComplete(true);
+    } catch (error) {
+      debugPrint('Failed to save onboarding state: $error');
+    }
+    if (!location.isResolved) {
       await refreshLocation();
     }
   }
@@ -368,7 +391,10 @@ class PrayerTimesController extends ChangeNotifier {
   Future<void> _prepareNotifications() async {
     try {
       await _notificationService.initialize();
-      if (_notifications.enabled) {
+      // The system permission dialog must only appear when the user asks for
+      // it — on the intro's enable button — not at launch. Reminders default
+      // to enabled, so first launches would otherwise prompt immediately.
+      if (_notifications.enabled && _onboardingComplete) {
         _notificationsReady = await _notificationService.requestPermission();
         _exactAlarmsAllowed = await _notificationService
             .canScheduleExactNotifications();

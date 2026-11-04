@@ -25,6 +25,10 @@ abstract interface class SettingsStore {
   Future<void> saveNotificationSettings(NotificationSettings settings);
   Future<AppThemeChoice> loadTheme();
   Future<void> saveTheme(AppThemeChoice choice);
+
+  /// Whether the first-launch intro has been finished.
+  Future<bool> loadOnboardingComplete();
+  Future<void> saveOnboardingComplete(bool complete);
 }
 
 class SharedPreferencesSettingsStore implements SettingsStore {
@@ -38,6 +42,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   static const String _mutedPrayersKey = 'muted_prayers';
   static const String _notificationSoundKey = 'notification_sound';
   static const String _themeKey = 'app_theme';
+  static const String _onboardingCompleteKey = 'onboarding_complete';
 
   @override
   Future<PrayerSettings> loadSettings() async {
@@ -162,5 +167,17 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   Future<void> saveTheme(AppThemeChoice choice) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeKey, choice.name);
+  }
+
+  @override
+  Future<bool> loadOnboardingComplete() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingCompleteKey) ?? false;
+  }
+
+  @override
+  Future<void> saveOnboardingComplete(bool complete) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingCompleteKey, complete);
   }
 }

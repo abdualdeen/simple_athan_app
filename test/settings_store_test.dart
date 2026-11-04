@@ -93,6 +93,18 @@ void main() {
     expect(state.activeIndex, 0);
   });
 
+  test('the intro flag defaults to false and round-trips', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final SharedPreferencesSettingsStore store =
+        SharedPreferencesSettingsStore();
+
+    expect(await store.loadOnboardingComplete(), isFalse);
+
+    await store.saveOnboardingComplete(true);
+
+    expect(await store.loadOnboardingComplete(), isTrue);
+  });
+
   test('clamps an out-of-range active index', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'saved_location_0_name': 'London, United Kingdom',
