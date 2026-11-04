@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
 import '../controllers/theme_controller.dart';
+import '../models/athan_sound.dart';
+import '../services/sound_preview_service.dart';
 import '../theme/app_theme.dart';
 import 'manual_location_screen.dart';
 
@@ -12,37 +16,85 @@ class OnboardingScreen extends StatefulWidget {
     super.key,
     required this.controller,
     required this.themeController,
+    this.soundPreviewService = const PlatformSoundPreviewService(),
   });
 
   final PrayerTimesController controller;
   final ThemeController themeController;
+  final SoundPreviewService soundPreviewService;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  static const int _stepCount = 4;
-
   int _step = 0;
   bool _isLocating = false;
+  bool _notificationsEnabled = false;
+  AthanSound? _playingSound;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.soundPreviewService.setCompletionHandler(_onPreviewComplete);
+  }
+
+  @override
+  void dispose() {
+    unawaited(widget.soundPreviewService.stop());
+    widget.soundPreviewService.setCompletionHandler(null);
+    super.dispose();
+  }
+
+  /// The steps of the intro. The adhan sound step only exists when the user
+  /// enabled reminders on the previous screen.
+  List<_OnboardingStep> get _steps => <_OnboardingStep>[
+    _OnboardingStep.welcome,
+    _OnboardingStep.notifications,
+    if (_notificationsEnabled) _OnboardingStep.sound,
+    _OnboardingStep.location,
+    _OnboardingStep.theme,
+  ];
 
   void _next() {
-    if (_step + 1 >= _stepCount) {
+    final List<_OnboardingStep> steps = _steps;
+    if (_step + 1 >= steps.length) {
       widget.controller.completeOnboarding();
       return;
+    }
+    if (steps[_step] == _OnboardingStep.sound) {
+      unawaited(widget.soundPreviewService.stop());
     }
     setState(() => _step++);
   }
 
   Future<void> _enableNotifications() async {
     await widget.controller.setNotificationsEnabled(true);
-    if (mounted) _next();
+    if (!mounted) return;
+    setState(() => _notificationsEnabled = true);
+    _next();
   }
 
   Future<void> _disableNotifications() async {
     await widget.controller.setNotificationsEnabled(false);
-    if (mounted) _next();
+    if (!mounted) return;
+    setState(() => _notificationsEnabled = false);
+    _next();
+  }
+
+  Future<void> _togglePreview(AthanSound sound) async {
+    if (_playingSound == sound) {
+      setState(() => _playingSound = null);
+      await widget.soundPreviewService.stop();
+      return;
+    }
+    setState(() => _playingSound = sound);
+    await widget.soundPreviewService.play(sound);
+  }
+
+  void _onPreviewComplete(AthanSound sound) {
+    if (!mounted) return;
+    if (_playingSound == sound) setState(() => _playingSound = null);
   }
 
   Future<void> _useDeviceLocation() async {
@@ -74,7 +126,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              _ProgressDots(step: _step, count: _stepCount),
+              _ProgressDots(step: _step, count: _steps.length),
               Expanded(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
@@ -92,30 +144,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStep(BuildContext context) {
-    switch (_step) {
-      case 0:
+    switch (_steps[_step]) {
+      case _OnboardingStep.welcome:
         return _WelcomeStep(onGetStarted: _next);
-      case 1:
+      case _OnboardingStep.notifications:
         return _NotificationsStep(
           onEnable: _enableNotifications,
           onNotNow: _disableNotifications,
         );
-      case 2:
+      case _OnboardingStep.sound:
+        return _SoundStep(
+          controller: widget.controller,
+          playingSound: _playingSound,
+          onTogglePreview: _togglePreview,
+          onContinue: _next,
+        );
+      case _OnboardingStep.location:
         return _LocationStep(
           controller: widget.controller,
           isLocating: _isLocating,
           onUseDevice: _useDeviceLocation,
           onEnterManually: _enterManually,
         );
-      case 3:
+      case _OnboardingStep.theme:
         return _ThemeStep(
           themeController: widget.themeController,
           onContinue: _next,
         );
     }
-    throw StateError('Unknown onboarding step: $_step');
   }
 }
+
+enum _OnboardingStep { welcome, notifications, sound, location, theme }
 
 /// Icon, title and description shared by the intro steps.
 class _StepHeader extends StatelessWidget {
@@ -244,6 +304,136 @@ class _NotificationsStep extends StatelessWidget {
           child: const Text('Not now'),
         ),
       ],
+    );
+  }
+}
+
+class _SoundStep extends StatelessWidget {
+  const _SoundStep({
+    required this.controller,
+    required this.playingSound,
+    required this.onTogglePreview,
+    required this.onContinue,
+  });
+
+  final PrayerTimesController controller;
+  final AthanSound? playingSound;
+  final void Function(AthanSound sound) onTogglePreview;
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const _StepHeader(
+          icon: Icons.music_note_outlined,
+          title: 'Athan sound',
+          description:
+              'Choose what the prayer reminder sounds like. Tap the play '
+              'button to hear each one.',
+        ),
+        const SizedBox(height: 24),
+        ListenableBuilder(
+          listenable: controller,
+          builder: (BuildContext context, Widget? _) {
+            final AthanSound selected = controller.notifications.sound;
+            return Column(
+              children: <Widget>[
+                for (final AthanSound sound in AthanSound.values)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _SoundRow(
+                      sound: sound,
+                      selected: selected == sound,
+                      playing: playingSound == sound,
+                      onSelect: () => controller.setNotificationSound(sound),
+                      onTogglePreview: () => onTogglePreview(sound),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            backgroundColor: palette.primary,
+            foregroundColor: palette.onPrimary,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: const Text('Continue'),
+        ),
+      ],
+    );
+  }
+}
+
+class _SoundRow extends StatelessWidget {
+  const _SoundRow({
+    required this.sound,
+    required this.selected,
+    required this.playing,
+    required this.onSelect,
+    required this.onTogglePreview,
+  });
+
+  final AthanSound sound;
+  final bool selected;
+  final bool playing;
+  final VoidCallback onSelect;
+  final VoidCallback onTogglePreview;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
+    return Material(
+      color: palette.surface,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onSelect,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            children: <Widget>[
+              IconButton(
+                onPressed: onTogglePreview,
+                tooltip: 'Preview ${sound.label}',
+                icon: Icon(
+                  playing ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                  color: playing ? palette.accentDark : palette.primary,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  sound.label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: palette.ink,
+                  ),
+                ),
+              ),
+              if (selected)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Icon(
+                    Icons.check_circle_rounded,
+                    color: palette.primary,
+                    size: 20,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -13,6 +13,7 @@ import 'package:athan_app/models/prayer.dart';
 import 'package:athan_app/models/prayer_notification.dart';
 import 'package:athan_app/models/prayer_settings.dart';
 import 'package:athan_app/screens/manual_location_screen.dart';
+import 'package:athan_app/screens/onboarding_screen.dart';
 import 'package:athan_app/screens/qibla_screen.dart';
 import 'package:athan_app/screens/settings_screen.dart';
 import 'package:athan_app/services/compass_service.dart';
@@ -21,6 +22,7 @@ import 'package:athan_app/services/location_service.dart';
 import 'package:athan_app/services/notification_service.dart';
 import 'package:athan_app/services/prayer_times_service.dart';
 import 'package:athan_app/services/settings_store.dart';
+import 'package:athan_app/services/sound_preview_service.dart';
 import 'package:athan_app/theme/app_theme.dart';
 import 'package:athan_app/utils/qibla.dart';
 
@@ -137,6 +139,23 @@ class _FakeCompassService implements CompassService {
 
   @override
   Stream<CompassReading> headingStream() => controller.stream;
+}
+
+class _FakeSoundPreviewService implements SoundPreviewService {
+  final List<AthanSound> played = <AthanSound>[];
+  AthanSound? playing;
+
+  @override
+  Future<void> play(AthanSound sound) async {
+    played.add(sound);
+    playing = sound;
+  }
+
+  @override
+  Future<void> stop() async => playing = null;
+
+  @override
+  void setCompletionHandler(void Function(AthanSound sound)? handler) {}
 }
 
 class _FakeNotificationService implements NotificationService {
@@ -787,6 +806,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(controller.notifications.enabled, isFalse);
 
+    // The adhan sound step is skipped when reminders stay off.
+    expect(find.text('Athan sound'), findsNothing);
+
     // Location step: enter a place manually.
     expect(find.text('Your location'), findsOneWidget);
     await tester.tap(find.text('Enter it manually'));
@@ -811,6 +833,69 @@ void main() {
     expect(controller.isOnboardingComplete, isTrue);
     expect(store.onboardingComplete, isTrue);
     expect(themeController.choice, AppThemeChoice.sky);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
+  testWidgets('the intro offers an adhan sound when reminders are enabled', (
+    WidgetTester tester,
+  ) async {
+    final DateTime now = _midMorning();
+    final _FakeNotificationService fake = _FakeNotificationService();
+    final _FakeSoundPreviewService previews = _FakeSoundPreviewService();
+    final _InMemorySettingsStore store = _InMemorySettingsStore();
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_london),
+      settingsStore: store,
+      notificationService: fake,
+      clock: () => now,
+    );
+    final ThemeController themeController = ThemeController(
+      settingsStore: store,
+    );
+    await controller.initialize();
+    await themeController.initialize();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: OnboardingScreen(
+          controller: controller,
+          themeController: themeController,
+          soundPreviewService: previews,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Enable notifications'));
+    await tester.pumpAndSettle();
+
+    // The sound step follows the notifications step.
+    expect(find.text('Athan sound'), findsOneWidget);
+    expect(find.text('System default'), findsOneWidget);
+    expect(find.text('Makkah - Ali Mullah'), findsOneWidget);
+    expect(find.text('Madina - Muhammad Qassas'), findsOneWidget);
+
+    // Preview the Makkah adhan.
+    await tester.tap(find.byTooltip('Preview Makkah - Ali Mullah'));
+    await tester.pump();
+    expect(previews.played, contains(AthanSound.makkahAliMullah));
+    expect(find.byIcon(Icons.stop_rounded), findsOneWidget);
+
+    // Select it and continue to the location step.
+    await tester.tap(find.text('Makkah - Ali Mullah'));
+    await tester.pump();
+    expect(controller.notifications.sound, AthanSound.makkahAliMullah);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(previews.playing, isNull);
+    expect(find.text('Your location'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
