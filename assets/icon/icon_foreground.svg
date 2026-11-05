@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Adaptive-icon foreground layer: 108dp canvas, artwork inside the 66dp safe
+       zone (circle radius 313px at this scale). Background layer is a flat color,
+       so this file must have a transparent background. -->
+  <g transform="translate(163.84,172) scale(0.68)">
+    <circle cx="512" cy="300" r="140" fill="#F7EDD8"/>
+    <circle cx="586" cy="238" r="116" fill="#0E6B5C"/>
+    <path d="M648 172 L657 204 L689 213 L657 222 L648 254 L639 222 L607 213 L639 204 Z" fill="#F7EDD8"/>
+    <path d="M208 470 L272 470 L240 414 Z" fill="#F7EDD8"/>
+    <rect x="208" y="470" width="64" height="314" fill="#F7EDD8"/>
+    <rect x="196" y="556" width="88" height="26" fill="#F7EDD8"/>
+    <path d="M752 470 L816 470 L784 414 Z" fill="#F7EDD8"/>
+    <rect x="752" y="470" width="64" height="314" fill="#F7EDD8"/>
+    <rect x="740" y="556" width="88" height="26" fill="#F7EDD8"/>
+    <rect x="506" y="492" width="12" height="30" fill="#F7EDD8"/>
+    <circle cx="512" cy="486" r="10" fill="#F7EDD8"/>
+    <path d="M382 648 A130 130 0 0 1 642 648 Z" fill="#F7EDD8"/>
+    <rect x="300" y="648" width="424" height="136" fill="#F7EDD8"/>
+    <path d="M474 784 L474 690 A38 38 0 0 1 550 690 L550 784 Z" fill="#0E6B5C"/>
+    <path d="M368 760 L368 714 A18 18 0 0 1 404 714 L404 760 Z" fill="#0E6B5C"/>
+    <path d="M620 760 L620 714 A18 18 0 0 1 656 714 L656 760 Z" fill="#0E6B5C"/>
+    <rect x="176" y="784" width="672" height="56" rx="10" fill="#F7EDD8"/>
+  </g>
+</svg>
