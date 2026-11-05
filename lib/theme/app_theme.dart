@@ -10,6 +10,9 @@ enum AppMotif {
 
   /// Olive branches, drifting leaves and a sun.
   olive,
+
+  /// Night sky with a moon, twinkling stars and shooting stars.
+  nightSky,
 }
 
 enum AppThemeChoice {
@@ -17,7 +20,7 @@ enum AppThemeChoice {
   dark('Dark'),
   olive('Olive'),
   sakura('Sakura'),
-  sky('Sky');
+  sky('Night Sky');
 
   const AppThemeChoice(this.label);
 
@@ -170,20 +173,21 @@ abstract final class AppPalettes {
   );
 
   static const AppPalette sky = AppPalette(
-    brightness: Brightness.light,
-    primary: Color(0xFF2B6C8F),
-    primaryDeep: Color(0xFF1B4A66),
-    primarySoft: Color(0xFF3D82A8),
-    accent: Color(0xFFC9A227),
-    accentDark: Color(0xFF8A6D12),
-    accentSoft: Color(0xFFE7CE8A),
-    background: Color(0xFFF1F7FB),
-    surface: Color(0xFFFFFFFF),
-    ink: Color(0xFF142A38),
-    inkMuted: Color(0xFF5C7484),
-    label: Color(0xFF1E6B8C),
+    brightness: Brightness.dark,
+    motif: AppMotif.nightSky,
+    primary: Color(0xFF2E4A6B),
+    primaryDeep: Color(0xFF0A1120),
+    primarySoft: Color(0xFF1B2C45),
+    accent: Color(0xFFE3C568),
+    accentDark: Color(0xFFC0A44E),
+    accentSoft: Color(0xFFF4E7C3),
+    background: Color(0xFF0B1322),
+    surface: Color(0xFF131E30),
+    ink: Color(0xFFE6EDF8),
+    inkMuted: Color(0xFF93A5BC),
+    label: Color(0xFF8FB8E8),
     onPrimary: Color(0xFFFFFFFF),
-    error: Color(0xFFB3261E),
+    error: Color(0xFFFFB4AB),
   );
 
   static AppPalette forChoice(AppThemeChoice choice) => switch (choice) {

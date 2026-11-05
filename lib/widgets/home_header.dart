@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_format.dart';
 import '../utils/hijri_date.dart';
+import 'nightsky_scene.dart';
 import 'olive_scene.dart';
 import 'sakura_scene.dart';
 
@@ -45,6 +46,7 @@ class HomeHeader extends StatelessWidget {
               child: switch (palette.motif) {
                 AppMotif.sakura => const SakuraScene(),
                 AppMotif.olive => const OliveScene(),
+                AppMotif.nightSky => const NightSkyScene(),
                 AppMotif.crescent => CustomPaint(
                   painter: _HeaderPatternPainter(color: palette.accent),
                 ),

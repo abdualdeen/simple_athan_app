@@ -823,10 +823,13 @@ void main() {
 
     // Theme step.
     expect(find.text('Pick a theme'), findsOneWidget);
-    await tester.tap(find.text('Sky'));
+    await tester.tap(find.text('Night Sky'));
     await tester.pump();
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    // The home screen shows the night sky scene, which animates forever, so
+    // pumpAndSettle must not be used past this point.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     // The home screen shows the chosen location and theme.
     expect(find.text('Paris, France'), findsOneWidget);
@@ -957,6 +960,38 @@ void main() {
             widget is CustomPaint &&
             widget.painter != null &&
             widget.painter.runtimeType.toString() == '_OliveScenePainter',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox());
+    result.controller.dispose();
+  });
+
+  testWidgets('the night sky theme shows the decorative header scene', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    await result.themeController.select(AppThemeChoice.sky);
+
+    await tester.pumpWidget(
+      AthanApp(
+        controller: result.controller,
+        themeController: result.themeController,
+      ),
+    );
+    // Advance a few frames of the repeating animation; the scene never
+    // settles, so pumpAndSettle must not be used here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('Assalamu Alaikum'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is CustomPaint &&
+            widget.painter != null &&
+            widget.painter.runtimeType.toString() == '_NightSkyScenePainter',
       ),
       findsOneWidget,
     );
