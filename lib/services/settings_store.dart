@@ -29,6 +29,11 @@ abstract interface class SettingsStore {
   /// Whether the first-launch intro has been finished.
   Future<bool> loadOnboardingComplete();
   Future<void> saveOnboardingComplete(bool complete);
+
+  /// Whether the device's position may be refreshed on launch. Only applies
+  /// to locations that were themselves found by the device.
+  Future<bool> loadAutomaticLocation();
+  Future<void> saveAutomaticLocation(bool enabled);
 }
 
 class SharedPreferencesSettingsStore implements SettingsStore {
@@ -43,6 +48,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   static const String _notificationSoundKey = 'notification_sound';
   static const String _themeKey = 'app_theme';
   static const String _onboardingCompleteKey = 'onboarding_complete';
+  static const String _automaticLocationKey = 'use_automatic_location';
 
   @override
   Future<PrayerSettings> loadSettings() async {
@@ -99,6 +105,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
       latitude: latitude,
       longitude: longitude,
       isResolved: true,
+      fromDevice: prefs.getBool('saved_location_${slot}_device') ?? false,
     );
   }
 
@@ -125,10 +132,12 @@ class SharedPreferencesSettingsStore implements SettingsStore {
         await prefs.setString('${prefix}name', location.name);
         await prefs.setDouble('${prefix}lat', location.latitude);
         await prefs.setDouble('${prefix}lng', location.longitude);
+        await prefs.setBool('${prefix}device', location.fromDevice);
       } else {
         await prefs.remove('${prefix}name');
         await prefs.remove('${prefix}lat');
         await prefs.remove('${prefix}lng');
+        await prefs.remove('${prefix}device');
       }
     }
     await prefs.setInt(_activeLocationIndexKey, state.activeIndex);
@@ -179,5 +188,17 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   Future<void> saveOnboardingComplete(bool complete) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_onboardingCompleteKey, complete);
+  }
+
+  @override
+  Future<bool> loadAutomaticLocation() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_automaticLocationKey) ?? true;
+  }
+
+  @override
+  Future<void> saveAutomaticLocation(bool enabled) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_automaticLocationKey, enabled);
   }
 }

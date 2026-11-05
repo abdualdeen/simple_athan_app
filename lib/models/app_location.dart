@@ -9,6 +9,7 @@ class AppLocation {
     required this.longitude,
     this.countryCode,
     this.isResolved = false,
+    this.fromDevice = false,
   });
 
   /// Used until a real location is known, or when permission is denied.
@@ -30,6 +31,12 @@ class AppLocation {
   /// rather than the fallback used before a location is known.
   final bool isResolved;
 
+  /// Whether this location was found by the device's location service rather
+  /// than picked by hand. When automatic location is on, a refreshed position
+  /// updates the slot that tracks the device instead of overwriting a place
+  /// the user chose manually.
+  final bool fromDevice;
+
   String get coordinatesLabel =>
       '${latitude.toStringAsFixed(3)}°, ${longitude.toStringAsFixed(3)}°';
 
@@ -39,6 +46,7 @@ class AppLocation {
     double? longitude,
     String? countryCode,
     bool? isResolved,
+    bool? fromDevice,
   }) {
     return AppLocation(
       name: name ?? this.name,
@@ -46,6 +54,7 @@ class AppLocation {
       longitude: longitude ?? this.longitude,
       countryCode: countryCode ?? this.countryCode,
       isResolved: isResolved ?? this.isResolved,
+      fromDevice: fromDevice ?? this.fromDevice,
     );
   }
 }

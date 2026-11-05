@@ -556,6 +556,26 @@ class _LocationCard extends StatelessWidget {
               ),
             ),
           ],
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: Icon(Icons.my_location_rounded, color: palette.primary),
+            title: Text(
+              'Automatic location',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: palette.ink,
+              ),
+            ),
+            subtitle: Text(
+              'Find your location every time you open the app',
+              style: TextStyle(fontSize: 12, color: palette.inkMuted),
+            ),
+            value: controller.useAutomaticLocation,
+            onChanged: controller.isLocating
+                ? null
+                : (bool value) => controller.setAutomaticLocation(value),
+          ),
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,

@@ -88,6 +88,7 @@ class DeviceLocationService implements LocationService {
       longitude: position.longitude,
       countryCode: info.countryCode,
       isResolved: true,
+      fromDevice: true,
     );
   }
 

@@ -66,6 +66,7 @@ class PrayerTimesController extends ChangeNotifier {
   bool _syncPending = false;
   bool _isFirstLaunch = false;
   bool _onboardingComplete = false;
+  bool _useAutomaticLocation = true;
   String? _locationError;
   Timer? _ticker;
   DateTime _now;
@@ -98,8 +99,14 @@ class PrayerTimesController extends ChangeNotifier {
   /// location from before the intro existed count as complete.
   bool get isOnboardingComplete => _onboardingComplete;
 
-  /// Loads saved settings and location, then asks the device for a fresh
-  /// position when nothing has been saved yet.
+  /// Whether the app may refresh the device's position on launch. The refresh
+  /// only runs when the shown location was itself found by the device, so a
+  /// place the user picked by hand is never replaced automatically.
+  bool get useAutomaticLocation => _useAutomaticLocation;
+
+  /// Loads saved settings and location, then refreshes the device's position
+  /// when automatic location is on and the shown location came from the
+  /// device.
   Future<void> initialize() async {
     try {
       _settings = await _settingsStore.loadSettings();
@@ -108,6 +115,7 @@ class PrayerTimesController extends ChangeNotifier {
       _isFirstLaunch = saved.locations.isEmpty;
       _savedLocations = saved.locations;
       _activeLocationIndex = saved.activeIndex;
+      _useAutomaticLocation = await _settingsStore.loadAutomaticLocation();
       _onboardingComplete =
           _savedLocations.isNotEmpty ||
           await _settingsStore.loadOnboardingComplete();
@@ -123,19 +131,29 @@ class PrayerTimesController extends ChangeNotifier {
     await _prepareNotifications();
 
     if (_savedLocations.isNotEmpty) {
-      await syncNotifications();
-    } else if (_onboardingComplete) {
+      if (_useAutomaticLocation && location.fromDevice) {
+        await refreshLocation();
+      } else {
+        await syncNotifications();
+      }
+    } else if (_onboardingComplete && _useAutomaticLocation) {
       await refreshLocation();
     }
   }
 
   /// Marks the first-launch intro as finished. Locations set during the intro
   /// have already been resolved; if not, fetches one now.
+  ///
+  /// The automatic-location setting starts matching how the user resolved
+  /// their location: a manual pick turns it off, a device fix (or none yet)
+  /// keeps it on.
   Future<void> completeOnboarding() async {
     _onboardingComplete = true;
+    _useAutomaticLocation = location.fromDevice;
     _notify();
     try {
       await _settingsStore.saveOnboardingComplete(true);
+      await _settingsStore.saveAutomaticLocation(_useAutomaticLocation);
     } catch (error) {
       debugPrint('Failed to save onboarding state: $error');
     }
@@ -172,6 +190,19 @@ class PrayerTimesController extends ChangeNotifier {
   /// Looks up places by name, or parses `latitude, longitude` input.
   Future<List<AppLocation>> searchLocations(String query) =>
       _locationSearchService.search(query);
+
+  /// Turns the automatic location setting on or off. Enabling it refreshes
+  /// the position straight away when the shown location came from the device;
+  /// a manually chosen place is left alone.
+  Future<void> setAutomaticLocation(bool enabled) async {
+    if (_useAutomaticLocation == enabled) return;
+    _useAutomaticLocation = enabled;
+    _notify();
+    await _settingsStore.saveAutomaticLocation(enabled);
+    if (enabled && location.fromDevice) {
+      await refreshLocation();
+    }
+  }
 
   /// Uses a location chosen by the user instead of the device's position.
   ///
@@ -233,9 +264,22 @@ class PrayerTimesController extends ChangeNotifier {
       _activeLocationIndex = _savedLocations.length - 1;
       return;
     }
+    // Both slots are used and this is a new place. A device refresh must
+    // update the device-tracked slot rather than the place the user picked
+    // by hand; a manual pick replaces the shown location.
+    final int target;
+    if (location.fromDevice) {
+      final int deviceSlot = _savedLocations.indexWhere(
+        (AppLocation saved) => saved.fromDevice,
+      );
+      target = deviceSlot >= 0 ? deviceSlot : _activeLocationIndex;
+    } else {
+      target = _activeLocationIndex;
+    }
     final List<AppLocation> updated = List<AppLocation>.of(_savedLocations);
-    updated[_activeLocationIndex] = location;
+    updated[target] = location;
     _savedLocations = updated;
+    _activeLocationIndex = target;
   }
 
   int _indexOfSamePlace(AppLocation location) {
