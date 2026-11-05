@@ -44,7 +44,7 @@ abstract final class PrayerNotificationBuilder {
             prayer: prayer.id,
             time: prayer.time,
             title: '${prayer.label} prayer',
-            body: 'It is time for ${prayer.label} in ${location.name}.',
+            body: 'It is time for ${prayer.label}.',
           ),
         );
       }

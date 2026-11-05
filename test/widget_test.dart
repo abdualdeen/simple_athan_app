@@ -11,6 +11,7 @@ import 'package:athan_app/models/athan_sound.dart';
 import 'package:athan_app/models/notification_settings.dart';
 import 'package:athan_app/models/prayer.dart';
 import 'package:athan_app/models/prayer_notification.dart';
+import 'package:athan_app/models/prayer_schedule.dart';
 import 'package:athan_app/models/prayer_settings.dart';
 import 'package:athan_app/screens/manual_location_screen.dart';
 import 'package:athan_app/screens/onboarding_screen.dart';
@@ -25,6 +26,7 @@ import 'package:athan_app/services/settings_store.dart';
 import 'package:athan_app/services/sound_preview_service.dart';
 import 'package:athan_app/theme/app_theme.dart';
 import 'package:athan_app/utils/qibla.dart';
+import 'package:athan_app/widgets/prayer_list.dart';
 
 const AppLocation _london = AppLocation(
   name: 'London, United Kingdom',
@@ -271,7 +273,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('London, United Kingdom'), findsOneWidget);
+    expect(find.text('London, UK'), findsOneWidget);
     expect(find.text('Assalamu Alaikum'), findsOneWidget);
     expect(find.text('NEXT PRAYER'), findsOneWidget);
     expect(find.text('Dhuhr'), findsNWidgets(2));
@@ -832,7 +834,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     // The home screen shows the chosen location and theme.
-    expect(find.text('Paris, France'), findsOneWidget);
+    expect(find.text('Paris, FR'), findsOneWidget);
     expect(controller.isOnboardingComplete, isTrue);
     expect(store.onboardingComplete, isTrue);
     expect(themeController.choice, AppThemeChoice.sky);
@@ -998,6 +1000,57 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     result.controller.dispose();
+  });
+
+  testWidgets('prayer tiles share the same height so times line up', (
+    WidgetTester tester,
+  ) async {
+    DateTime at(int hour, int minute) => DateTime(2026, 11, 4, hour, minute);
+    final List<PrayerTime> prayers = <PrayerTime>[
+      PrayerTime(id: PrayerId.fajr, time: at(5, 56)),
+      PrayerTime(id: PrayerId.sunrise, time: at(7, 16)),
+      PrayerTime(id: PrayerId.dhuhr, time: at(12, 23)),
+    ];
+    final PrayerDay day = PrayerDay(
+      schedule: PrayerSchedule(date: DateTime(2026, 11, 4), prayers: prayers),
+      next: prayers.first,
+      previous: prayers.last,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: PrayerList(
+              day: day,
+              muted: const <PrayerId>{},
+              onToggleMute: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final List<double> heights = <double>[
+      for (final PrayerTime prayer in prayers)
+        tester
+            .getRect(
+              find
+                  .ancestor(
+                    of: find.text(prayer.label),
+                    matching: find.byWidgetPredicate(
+                      (Widget widget) =>
+                          widget is Container &&
+                          widget.padding ==
+                              const EdgeInsets.fromLTRB(12, 10, 8, 10),
+                    ),
+                  )
+                  .first,
+            )
+            .height,
+    ];
+    expect(heights, everyElement(heights.first));
   });
 
   testWidgets('settings can disable all prayer reminders', (

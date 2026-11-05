@@ -86,9 +86,14 @@ class _PrayerTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: isNext ? palette.primary : palette.surface,
         borderRadius: BorderRadius.circular(18),
-        border: isNext
-            ? null
-            : Border.all(color: palette.primary.withValues(alpha: 0.07)),
+        // Every tile carries a border so the highlighted row — whose border
+        // matches its own background and stays invisible — has the same
+        // geometry as the rest; otherwise rows shift by the border width.
+        border: Border.all(
+          color: isNext
+              ? palette.primary
+              : palette.primary.withValues(alpha: 0.07),
+        ),
         boxShadow: isNext
             ? <BoxShadow>[
                 BoxShadow(
@@ -192,23 +197,33 @@ class _PrayerTile extends StatelessWidget {
               ),
             ],
           ),
-          if (prayer.isPrayer)
-            IconButton(
-              onPressed: onToggleMute,
-              tooltip: isMuted
-                  ? 'Unmute ${prayer.label}'
-                  : 'Mute ${prayer.label}',
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: EdgeInsets.zero,
-              iconSize: 19,
-              color: isNext ? palette.accentSoft : palette.inkMuted,
-              icon: Icon(
-                isMuted
-                    ? Icons.notifications_off_outlined
-                    : Icons.notifications_active_outlined,
-              ),
-            ),
+          // Every row reserves the mute button's space so the time column
+          // ends at the same position; sunrise's slot is simply empty.
+          SizedBox(
+            width: 40,
+            height: 42,
+            child: prayer.isPrayer
+                ? IconButton(
+                    onPressed: onToggleMute,
+                    tooltip: isMuted
+                        ? 'Unmute ${prayer.label}'
+                        : 'Mute ${prayer.label}',
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
+                    padding: EdgeInsets.zero,
+                    iconSize: 19,
+                    color: isNext ? palette.accentSoft : palette.inkMuted,
+                    icon: Icon(
+                      isMuted
+                          ? Icons.notifications_off_outlined
+                          : Icons.notifications_active_outlined,
+                    ),
+                  )
+                : null,
+          ),
         ],
       ),
     );

@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
         return Scaffold(
           key: _scaffoldKey,
-          drawer: AppDrawer(
+          endDrawer: AppDrawer(
             controller: controller,
             themeController: widget.themeController,
           ),
@@ -119,7 +119,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       date: controller.now,
                       locationName: controller.location.name,
                       isLocating: controller.isLocating,
-                      onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      onMenuTap: () =>
+                          _scaffoldKey.currentState?.openEndDrawer(),
                       onLocationTap: _showLocationSheet,
                     ),
                     Positioned(

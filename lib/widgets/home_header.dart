@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_format.dart';
 import '../utils/hijri_date.dart';
+import '../utils/location_name.dart';
 import 'nightsky_scene.dart';
 import 'olive_scene.dart';
 import 'sakura_scene.dart';
@@ -56,27 +57,27 @@ class HomeHeader extends StatelessWidget {
           SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 104),
+              padding: const EdgeInsets.fromLTRB(20, 26, 20, 104),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      _RoundIconButton(
-                        icon: Icons.menu_rounded,
-                        tooltip: 'Open menu',
-                        onTap: onMenuTap,
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
                         child: Align(
-                          alignment: Alignment.centerRight,
+                          alignment: Alignment.centerLeft,
                           child: _LocationPill(
-                            name: locationName,
+                            name: abbreviateLocationName(locationName),
                             isLocating: isLocating,
                             onTap: onLocationTap,
                           ),
                         ),
+                      ),
+                      const SizedBox(width: 12),
+                      _RoundIconButton(
+                        icon: Icons.menu_rounded,
+                        tooltip: 'Open menu',
+                        onTap: onMenuTap,
                       ),
                     ],
                   ),
