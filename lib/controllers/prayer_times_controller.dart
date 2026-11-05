@@ -66,6 +66,7 @@ class PrayerTimesController extends ChangeNotifier {
   bool _syncPending = false;
   bool _isFirstLaunch = false;
   bool _onboardingComplete = false;
+  bool _useAutomaticLocation = false;
   String? _locationError;
   Timer? _ticker;
   DateTime _now;
@@ -98,8 +99,13 @@ class PrayerTimesController extends ChangeNotifier {
   /// location from before the intro existed count as complete.
   bool get isOnboardingComplete => _onboardingComplete;
 
+  /// Whether the device's position is refreshed on every launch. Users turn
+  /// this on by choosing their device's location; picking a place manually
+  /// turns it off.
+  bool get useAutomaticLocation => _useAutomaticLocation;
+
   /// Loads saved settings and location, then asks the device for a fresh
-  /// position when nothing has been saved yet.
+  /// position when automatic location is on or nothing has been saved yet.
   Future<void> initialize() async {
     try {
       _settings = await _settingsStore.loadSettings();
@@ -108,6 +114,7 @@ class PrayerTimesController extends ChangeNotifier {
       _isFirstLaunch = saved.locations.isEmpty;
       _savedLocations = saved.locations;
       _activeLocationIndex = saved.activeIndex;
+      _useAutomaticLocation = await _settingsStore.loadAutomaticLocation();
       _onboardingComplete =
           _savedLocations.isNotEmpty ||
           await _settingsStore.loadOnboardingComplete();
@@ -122,7 +129,9 @@ class PrayerTimesController extends ChangeNotifier {
 
     await _prepareNotifications();
 
-    if (_savedLocations.isNotEmpty) {
+    if (_useAutomaticLocation) {
+      await refreshLocation();
+    } else if (_savedLocations.isNotEmpty) {
       await syncNotifications();
     } else if (_onboardingComplete) {
       await refreshLocation();
@@ -156,6 +165,7 @@ class PrayerTimesController extends ChangeNotifier {
       _day = null;
       await _applySuggestedMethod();
       await _saveLocations();
+      await _saveAutomaticLocation(true);
     } on LocationException catch (error) {
       _locationError = error.message;
     } catch (error) {
@@ -177,10 +187,13 @@ class PrayerTimesController extends ChangeNotifier {
   ///
   /// A place that is already stored is switched to; otherwise it fills the
   /// free slot, or replaces the active location when both slots are in use.
+  /// A manual choice also stops the device position being refreshed on
+  /// every launch.
   Future<void> setManualLocation(AppLocation location) async {
-    _upsertLocation(location.copyWith(isResolved: true));
+    _upsertLocation(location.copyWith(isResolved: true, fromDevice: false));
     _locationError = null;
     _day = null;
+    await _saveAutomaticLocation(false);
     await _applySuggestedMethod();
     _notify();
     await _saveLocations();
@@ -219,8 +232,16 @@ class PrayerTimesController extends ChangeNotifier {
   /// Stores [location] in the first free slot, or replaces the active entry
   /// when both slots are used. Re-selecting a stored place just switches to
   /// it instead of duplicating it.
+  ///
+  /// A refreshed device position first looks for the slot that already tracks
+  /// the device, so it keeps updating its own entry even when the coordinates
+  /// have drifted since it was saved, instead of overwriting a place the user
+  /// picked by hand.
   void _upsertLocation(AppLocation location) {
-    final int existing = _indexOfSamePlace(location);
+    int existing = location.fromDevice
+        ? _savedLocations.indexWhere((AppLocation saved) => saved.fromDevice)
+        : -1;
+    if (existing < 0) existing = _indexOfSamePlace(location);
     if (existing >= 0) {
       final List<AppLocation> updated = List<AppLocation>.of(_savedLocations);
       updated[existing] = location;
@@ -254,6 +275,23 @@ class PrayerTimesController extends ChangeNotifier {
       locations: _savedLocations,
       activeIndex: _activeLocationIndex,
     ));
+  }
+
+  /// Records whether the device's position should be refreshed on every
+  /// launch. Choosing the device's location opts in; picking a place by hand
+  /// opts out.
+  Future<void> _saveAutomaticLocation(bool enabled) async {
+    if (_useAutomaticLocation == enabled) return;
+    _useAutomaticLocation = enabled;
+    _notify();
+    await _settingsStore.saveAutomaticLocation(enabled);
+  }
+
+  /// Turns automatic location on or off from the settings screen. Enabling it
+  /// fetches a fresh position straight away.
+  Future<void> setAutomaticLocation(bool enabled) async {
+    await _saveAutomaticLocation(enabled);
+    if (enabled) await refreshLocation();
   }
 
   /// On the first launch, once a location is known (from the device or picked

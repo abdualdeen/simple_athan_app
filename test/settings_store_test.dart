@@ -105,6 +105,49 @@ void main() {
     expect(await store.loadOnboardingComplete(), isTrue);
   });
 
+  test(
+    'the automatic location flag defaults to false and round-trips',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final SharedPreferencesSettingsStore store =
+          SharedPreferencesSettingsStore();
+
+      expect(await store.loadAutomaticLocation(), isFalse);
+
+      await store.saveAutomaticLocation(true);
+
+      expect(await store.loadAutomaticLocation(), isTrue);
+    },
+  );
+
+  test('saves and reloads which location came from the device', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final SharedPreferencesSettingsStore store =
+        SharedPreferencesSettingsStore();
+    const AppLocation device = AppLocation(
+      name: 'London, United Kingdom',
+      latitude: 51.5074,
+      longitude: -0.1278,
+      isResolved: true,
+      fromDevice: true,
+    );
+    const AppLocation paris = AppLocation(
+      name: 'Paris, France',
+      latitude: 48.8566,
+      longitude: 2.3522,
+      isResolved: true,
+    );
+
+    await store.saveLocations((
+      locations: <AppLocation>[device, paris],
+      activeIndex: 0,
+    ));
+    final SavedLocationState state = await store.loadLocations();
+
+    expect(state.locations[0].fromDevice, isTrue);
+    expect(state.locations[1].fromDevice, isFalse);
+  });
+
   test('clamps an out-of-range active index', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'saved_location_0_name': 'London, United Kingdom',

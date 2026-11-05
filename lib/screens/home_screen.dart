@@ -452,7 +452,9 @@ class _SavedLocationRow extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
-                    Icons.location_on_outlined,
+                    location.fromDevice
+                        ? Icons.my_location_rounded
+                        : Icons.location_on_outlined,
                     color: palette.primary,
                     size: 22,
                   ),

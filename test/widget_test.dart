@@ -48,6 +48,24 @@ const AppLocation _paris = AppLocation(
   isResolved: true,
 );
 
+const AppLocation _londonDevice = AppLocation(
+  name: 'London, United Kingdom',
+  latitude: 51.5074,
+  longitude: -0.1278,
+  countryCode: 'GB',
+  isResolved: true,
+  fromDevice: true,
+);
+
+const AppLocation _newYorkDevice = AppLocation(
+  name: 'New York, United States',
+  latitude: 40.7128,
+  longitude: -74.006,
+  countryCode: 'US',
+  isResolved: true,
+  fromDevice: true,
+);
+
 class _FakeLocationService implements LocationService {
   const _FakeLocationService(this.location);
 
@@ -74,6 +92,7 @@ class _InMemorySettingsStore implements SettingsStore {
   int activeIndex = 0;
   bool methodSaved = false;
   bool onboardingComplete = false;
+  bool automaticLocation = false;
 
   @override
   Future<PrayerSettings> loadSettings() async => settings;
@@ -103,6 +122,13 @@ class _InMemorySettingsStore implements SettingsStore {
   @override
   Future<void> saveOnboardingComplete(bool value) async =>
       onboardingComplete = value;
+
+  @override
+  Future<bool> loadAutomaticLocation() async => automaticLocation;
+
+  @override
+  Future<void> saveAutomaticLocation(bool value) async =>
+      automaticLocation = value;
 
   @override
   Future<NotificationSettings> loadNotificationSettings() async =>
@@ -514,6 +540,93 @@ void main() {
     expect(controller.settings.method, PrayerMethod.muslimWorldLeague);
 
     controller.dispose();
+  });
+
+  test('choosing the device location refreshes it on every launch', () async {
+    final _InMemorySettingsStore store = _InMemorySettingsStore()
+      ..onboardingComplete = true;
+    final PrayerTimesController first = PrayerTimesController(
+      locationService: const _FakeLocationService(_londonDevice),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+
+    await first.initialize();
+    expect(first.location.name, 'London, United Kingdom');
+    expect(store.automaticLocation, isTrue);
+    first.dispose();
+
+    // A later launch asks the device again and replaces the stored position.
+    final PrayerTimesController second = PrayerTimesController(
+      locationService: const _FakeLocationService(_newYorkDevice),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+    await second.initialize();
+
+    expect(second.location.name, 'New York, United States');
+    expect(second.location.fromDevice, isTrue);
+
+    second.dispose();
+  });
+
+  test(
+    'a launch refresh updates the device slot and keeps the manual one',
+    () async {
+      final _InMemorySettingsStore store = _InMemorySettingsStore()
+        ..locations = <AppLocation>[_londonDevice, _paris]
+        ..activeIndex = 1
+        ..automaticLocation = true;
+      final PrayerTimesController controller = PrayerTimesController(
+        locationService: const _FakeLocationService(_newYorkDevice),
+        settingsStore: store,
+        notificationService: _FakeNotificationService(),
+        clock: _midMorning,
+      );
+
+      await controller.initialize();
+
+      expect(controller.savedLocations, hasLength(2));
+      expect(controller.location.name, 'New York, United States');
+      expect(controller.savedLocations[1].name, 'Paris, France');
+      expect(store.locations[1].name, 'Paris, France');
+
+      controller.dispose();
+    },
+  );
+
+  test('picking a manual location turns automatic refresh off', () async {
+    final _InMemorySettingsStore store = _InMemorySettingsStore()
+      ..locations = <AppLocation>[_londonDevice]
+      ..automaticLocation = true;
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_newYorkDevice),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+    await controller.initialize();
+
+    await controller.setManualLocation(_paris);
+
+    expect(store.automaticLocation, isFalse);
+    expect(controller.location.name, 'Paris, France');
+    controller.dispose();
+
+    // The next launch keeps the manually chosen place.
+    final PrayerTimesController second = PrayerTimesController(
+      locationService: const _FakeLocationService(_newYorkDevice),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      clock: _midMorning,
+    );
+    await second.initialize();
+
+    expect(second.location.name, 'Paris, France');
+
+    second.dispose();
   });
 
   test('completing the intro persists the flag', () async {
