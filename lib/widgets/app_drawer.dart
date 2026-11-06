@@ -1,10 +1,27 @@
+// Simply Athan - prayer times and Qibla app.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import 'package:flutter/material.dart';
 
 import '../controllers/prayer_times_controller.dart';
 import '../controllers/theme_controller.dart';
+import '../screens/about_screen.dart';
 import '../screens/qibla_screen.dart';
 import '../screens/settings_screen.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_info.dart';
 
 /// Side menu with the app's main destinations.
 class AppDrawer extends StatelessWidget {
@@ -53,20 +70,27 @@ class AppDrawer extends StatelessWidget {
                 _DrawerItem(
                   icon: Icons.info_outline_rounded,
                   label: 'About',
-                  onTap: () => _showComingSoon(context, 'About'),
+                  comingSoon: false,
+                  onTap: () => _openAbout(context),
                 ),
               ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-            child: Text(
-              'Athan • v1.0.0',
-              style: TextStyle(
-                fontSize: 11,
-                color: palette.inkMuted,
-                letterSpacing: 1,
-              ),
+            child: FutureBuilder<String>(
+              future: AppInfo.version(),
+              builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+                final String version = snapshot.data ?? '…';
+                return Text(
+                  '${AppInfo.appName} • v$version',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: palette.inkMuted,
+                    letterSpacing: 1,
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -97,10 +121,14 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text('$feature is coming soon.')));
+  void _openAbout(BuildContext context) {
+    final NavigatorState navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => const AboutScreen(),
+      ),
+    );
   }
 }
 

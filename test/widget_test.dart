@@ -1,3 +1,18 @@
+// Simply Athan - prayer times and Qibla app.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -354,6 +369,34 @@ void main() {
     await tester.pump();
 
     expect(controller.settings.madhab, AsrMadhab.hanafi);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
+  testWidgets('drawer opens the about screen with app details', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+
+    await tester.pumpWidget(
+      AthanApp(controller: controller, themeController: result.themeController),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.menu_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.text('About'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Simply Athan'), findsOneWidget);
+    expect(find.text('Abdullah Aldeen'), findsOneWidget);
+    expect(find.text('GitHub repository'), findsOneWidget);
+    expect(find.text('GNU General Public License v3.0'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     controller.dispose();

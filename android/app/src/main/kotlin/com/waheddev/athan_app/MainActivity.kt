@@ -1,4 +1,4 @@
-package com.example.athan_app
+package com.waheddev.athan_app
 
 import android.media.MediaPlayer
 import android.media.RingtoneManager
