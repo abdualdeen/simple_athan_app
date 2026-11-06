@@ -397,6 +397,7 @@ void main() {
     expect(find.text('Abdullah Aldeen'), findsOneWidget);
     expect(find.text('GitHub repository'), findsOneWidget);
     expect(find.text('GNU General Public License v3.0'), findsOneWidget);
+    expect(find.text('Privacy policy'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     controller.dispose();

@@ -22,6 +22,8 @@ abstract final class AppInfo {
   static const String developer = 'Abdullah Aldeen';
   static const String githubUrl =
       'https://github.com/abdualdeen/simple_athan_app/';
+  static const String privacyPolicyUrl =
+      'https://github.com/abdualdeen/simple_athan_app/blob/master/PRIVACY.md';
   static const String licenseUrl = 'https://www.gnu.org/licenses/gpl-3.0.html';
   static const String licenseName = 'GNU General Public License v3.0';
 
