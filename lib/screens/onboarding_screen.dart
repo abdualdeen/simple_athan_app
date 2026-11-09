@@ -46,6 +46,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _step = 0;
   bool _isLocating = false;
   bool _notificationsEnabled = false;
+  bool _exactAlarmsAllowed = false;
   AthanSound? _playingSound;
 
   @override
@@ -61,11 +62,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  /// The steps of the intro. The adhan sound step only exists when the user
-  /// enabled reminders on the previous screen.
+  /// The steps of the intro. The alarms and adhan sound steps only exist when
+  /// the user enabled reminders on the notifications screen, and the alarms
+  /// step is skipped when the platform already allows exact scheduling.
   List<_OnboardingStep> get _steps => <_OnboardingStep>[
     _OnboardingStep.welcome,
     _OnboardingStep.notifications,
+    if (_notificationsEnabled && !_exactAlarmsAllowed) _OnboardingStep.alarms,
     if (_notificationsEnabled) _OnboardingStep.sound,
     _OnboardingStep.location,
     _OnboardingStep.theme,
@@ -86,7 +89,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _enableNotifications() async {
     await widget.controller.setNotificationsEnabled(true);
     if (!mounted) return;
-    setState(() => _notificationsEnabled = true);
+    setState(() {
+      _notificationsEnabled = true;
+      _exactAlarmsAllowed = widget.controller.exactAlarmsAllowed;
+    });
+    _next();
+  }
+
+  Future<void> _requestExactAlarms() async {
+    await widget.controller.requestExactAlarms();
+    if (!mounted) return;
+    setState(() => _exactAlarmsAllowed = widget.controller.exactAlarmsAllowed);
     _next();
   }
 
@@ -167,6 +180,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           onEnable: _enableNotifications,
           onNotNow: _disableNotifications,
         );
+      case _OnboardingStep.alarms:
+        return _AlarmsStep(onAllow: _requestExactAlarms, onNotNow: _next);
       case _OnboardingStep.sound:
         return _SoundStep(
           controller: widget.controller,
@@ -190,7 +205,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-enum _OnboardingStep { welcome, notifications, sound, location, theme }
+enum _OnboardingStep { welcome, notifications, alarms, sound, location, theme }
 
 /// Icon, title and description shared by the intro steps.
 class _StepHeader extends StatelessWidget {
@@ -303,6 +318,52 @@ class _NotificationsStep extends StatelessWidget {
           onPressed: onEnable,
           icon: const Icon(Icons.notifications_active_rounded, size: 18),
           label: const Text('Enable notifications'),
+          style: FilledButton.styleFrom(
+            backgroundColor: palette.primary,
+            foregroundColor: palette.onPrimary,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: onNotNow,
+          style: TextButton.styleFrom(foregroundColor: palette.label),
+          child: const Text('Not now'),
+        ),
+      ],
+    );
+  }
+}
+
+class _AlarmsStep extends StatelessWidget {
+  const _AlarmsStep({required this.onAllow, required this.onNotNow});
+
+  final VoidCallback onAllow;
+  final VoidCallback onNotNow;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const _StepHeader(
+          icon: Icons.alarm_rounded,
+          title: 'Allow alarms & reminders',
+          description:
+              'Athan needs permission to schedule exact alarms so prayer '
+              'notifications arrive on time. Without it, Android may delay '
+              'them by several minutes to save battery.',
+        ),
+        const SizedBox(height: 32),
+        FilledButton.icon(
+          onPressed: onAllow,
+          icon: const Icon(Icons.alarm_rounded, size: 18),
+          label: const Text('Allow exact alarms'),
           style: FilledButton.styleFrom(
             backgroundColor: palette.primary,
             foregroundColor: palette.onPrimary,

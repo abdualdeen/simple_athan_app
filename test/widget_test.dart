@@ -1289,6 +1289,58 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('the intro asks for exact alarms when they are not allowed', (
+    WidgetTester tester,
+  ) async {
+    final DateTime now = _midMorning();
+    final _FakeNotificationService fake = _FakeNotificationService()
+      ..exactAlarmsAllowed = false;
+    final _FakeSoundPreviewService previews = _FakeSoundPreviewService();
+    final _InMemorySettingsStore store = _InMemorySettingsStore();
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_london),
+      settingsStore: store,
+      notificationService: fake,
+      clock: () => now,
+    );
+    final ThemeController themeController = ThemeController(
+      settingsStore: store,
+    );
+    await controller.initialize();
+    await themeController.initialize();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: OnboardingScreen(
+          controller: controller,
+          themeController: themeController,
+          soundPreviewService: previews,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Enable notifications'));
+    await tester.pumpAndSettle();
+
+    // The alarms step follows the notifications step when exact alarms are
+    // not allowed yet.
+    expect(find.text('Allow alarms & reminders'), findsOneWidget);
+
+    await tester.tap(find.text('Allow exact alarms'));
+    await tester.pumpAndSettle();
+
+    // The sound step follows once the alarms step is done.
+    expect(find.text('Athan sound'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
   testWidgets('the sakura theme shows the decorative header scene', (
     WidgetTester tester,
   ) async {
