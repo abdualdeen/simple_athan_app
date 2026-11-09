@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/prayer.dart';
 import '../models/prayer_schedule.dart';
@@ -219,7 +220,10 @@ class _PrayerTile extends StatelessWidget {
             height: 42,
             child: prayer.isPrayer
                 ? IconButton(
-                    onPressed: onToggleMute,
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      onToggleMute();
+                    },
                     tooltip: isMuted
                         ? 'Unmute ${prayer.label}'
                         : 'Mute ${prayer.label}',

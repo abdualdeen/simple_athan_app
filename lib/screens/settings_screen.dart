@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../controllers/prayer_times_controller.dart';
 import '../controllers/theme_controller.dart';
@@ -89,6 +90,7 @@ class SettingsScreen extends StatelessWidget {
                         ],
                         selected: <AsrMadhab>{controller.settings.madhab},
                         onSelectionChanged: (Set<AsrMadhab> selection) {
+                          HapticFeedback.selectionClick();
                           controller.updateSettings(
                             controller.settings.copyWith(
                               madhab: selection.first,
@@ -234,7 +236,10 @@ class SettingsScreen extends StatelessWidget {
                                   size: 20,
                                 )
                               : null,
-                          onTap: () => Navigator.of(sheetContext).pop(method),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.of(sheetContext).pop(method);
+                          },
                         ),
                     ],
                   ),
@@ -329,7 +334,10 @@ class SettingsScreen extends StatelessWidget {
                                   size: 20,
                                 )
                               : null,
-                          onTap: () => Navigator.of(sheetContext).pop(sound),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.of(sheetContext).pop(sound);
+                          },
                         ),
                     ],
                   ),
@@ -416,7 +424,10 @@ class SettingsScreen extends StatelessWidget {
                                   size: 20,
                                 )
                               : null,
-                          onTap: () => Navigator.of(sheetContext).pop(choice),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.of(sheetContext).pop(choice);
+                          },
                         ),
                     ],
                   ),
@@ -589,7 +600,10 @@ class _LocationCard extends StatelessWidget {
             value: controller.useAutomaticLocation,
             onChanged: controller.isLocating
                 ? null
-                : (bool value) => controller.setAutomaticLocation(value),
+                : (bool value) {
+                    HapticFeedback.selectionClick();
+                    controller.setAutomaticLocation(value);
+                  },
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -745,7 +759,10 @@ class _NotificationCard extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: palette.inkMuted),
             ),
             value: settings.enabled,
-            onChanged: controller.setNotificationsEnabled,
+            onChanged: (bool value) {
+              HapticFeedback.selectionClick();
+              controller.setNotificationsEnabled(value);
+            },
           ),
           if (settings.enabled) ...<Widget>[
             const Divider(height: 1),
@@ -763,7 +780,10 @@ class _NotificationCard extends StatelessWidget {
                     style: TextStyle(fontSize: 14, color: palette.ink),
                   ),
                   value: settings.isEnabledFor(prayer),
-                  onChanged: (_) => controller.togglePrayerNotification(prayer),
+                  onChanged: (_) {
+                    HapticFeedback.selectionClick();
+                    controller.togglePrayerNotification(prayer);
+                  },
                 ),
             const Divider(height: 1),
             _SettingRow(
