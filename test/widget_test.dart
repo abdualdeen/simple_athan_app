@@ -1446,20 +1446,24 @@ void main() {
       PrayerTime(id: PrayerId.sunrise, time: at(7, 16)),
       PrayerTime(id: PrayerId.dhuhr, time: at(12, 23)),
     ];
-    final PrayerDay day = PrayerDay(
-      schedule: PrayerSchedule(date: DateTime(2026, 11, 4), prayers: prayers),
-      next: prayers.first,
-      previous: prayers.last,
-    );
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
             child: PrayerList(
-              day: day,
+              schedule: PrayerSchedule(
+                date: DateTime(2026, 11, 4),
+                prayers: prayers,
+              ),
+              date: DateTime(2026, 11, 4),
+              dayOffset: 0,
+              nextId: prayers.first.id,
               muted: const <PrayerId>{},
               onToggleMute: (_) {},
+              onPreviousDay: () {},
+              onNextDay: () {},
+              onBackToToday: () {},
             ),
           ),
         ),
@@ -1486,6 +1490,49 @@ void main() {
             .height,
     ];
     expect(heights, everyElement(heights.first));
+  });
+
+  testWidgets('the prayer list can browse previous and future days', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+
+    await tester.pumpWidget(
+      AthanApp(controller: controller, themeController: result.themeController),
+    );
+    await tester.pump();
+
+    expect(find.text("Today's Prayers"), findsOneWidget);
+    expect(find.text('Back to today'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pump();
+
+    expect(find.text('Yesterday'), findsOneWidget);
+    expect(find.text('Back to today'), findsOneWidget);
+
+    // Stepping forward twice from yesterday lands on tomorrow.
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pump();
+
+    expect(find.text('Tomorrow'), findsOneWidget);
+    expect(find.text('Back to today'), findsOneWidget);
+
+    await tester.tap(find.text('Back to today'));
+    await tester.pump();
+
+    expect(find.text("Today's Prayers"), findsOneWidget);
+    expect(find.text('Back to today'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
   });
 
   testWidgets('settings can disable all prayer reminders', (

@@ -21,22 +21,57 @@ import '../models/prayer_schedule.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_format.dart';
 
-/// The list of today's prayer times, highlighting the upcoming prayer.
+/// The prayer times for a single day, highlighting the upcoming prayer, with
+/// controls to browse previous and future days.
 class PrayerList extends StatelessWidget {
   const PrayerList({
     super.key,
-    required this.day,
+    required this.schedule,
+    required this.date,
+    required this.dayOffset,
+    required this.nextId,
     required this.muted,
     required this.onToggleMute,
+    required this.onPreviousDay,
+    required this.onNextDay,
+    required this.onBackToToday,
   });
 
-  final PrayerDay day;
+  final PrayerSchedule schedule;
+
+  /// The date being shown, at local midnight.
+  final DateTime date;
+
+  /// Days between [date] and today; `0` shows today.
+  final int dayOffset;
+
+  /// The id of the upcoming prayer, or `null` when [date] is not today so no
+  /// row is highlighted.
+  final PrayerId? nextId;
   final Set<PrayerId> muted;
   final ValueChanged<PrayerId> onToggleMute;
+  final VoidCallback onPreviousDay;
+  final VoidCallback onNextDay;
+  final VoidCallback onBackToToday;
+
+  bool get _isToday => dayOffset == 0;
+
+  String get _title {
+    if (_isToday) return "Today's Prayers";
+    if (dayOffset == -1) return 'Yesterday';
+    if (dayOffset == 1) return 'Tomorrow';
+    return formatGregorianDate(date);
+  }
+
+  String get _subtitle {
+    if (_isToday) return 'Adhan times for today';
+    if (dayOffset == -1 || dayOffset == 1) return formatGregorianDate(date);
+    return 'Adhan times';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final PrayerSchedule schedule = day.schedule;
+    final AppPalette palette = context.palette;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -44,28 +79,96 @@ class PrayerList extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
+              IconButton(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  onPreviousDay();
+                },
+                tooltip: 'Previous day',
+                iconSize: 26,
+                color: palette.primary,
+                icon: const Icon(Icons.chevron_left),
+              ),
               Expanded(
-                child: Text(
-                  "Today's Prayers",
-                  style: Theme.of(context).textTheme.headlineSmall,
+                child: Column(
+                  children: <Widget>[
+                    Text(
+                      _title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
                 ),
+              ),
+              IconButton(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  onNextDay();
+                },
+                tooltip: 'Next day',
+                iconSize: 26,
+                color: palette.primary,
+                icon: const Icon(Icons.chevron_right),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Adhan times for today',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          if (!_isToday)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Material(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.circular(999),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: onBackToToday,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Icon(
+                            Icons.today_outlined,
+                            size: 15,
+                            color: palette.label,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Back to today',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: palette.label,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           const SizedBox(height: 16),
           for (final PrayerTime prayer in schedule.prayers)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: _PrayerTile(
                 prayer: prayer,
-                isNext: prayer.id == day.next.id,
+                isNext: prayer.id == nextId,
                 isMuted: muted.contains(prayer.id),
                 onToggleMute: () => onToggleMute(prayer.id),
               ),

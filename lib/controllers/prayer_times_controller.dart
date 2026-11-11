@@ -465,6 +465,11 @@ class PrayerTimesController extends ChangeNotifier {
     _notify();
   }
 
+  /// The prayer schedule for an arbitrary date at the shown location, used
+  /// to browse previous and future days from the home screen.
+  PrayerSchedule scheduleForDate(DateTime date) => _prayerTimesService
+      .scheduleFor(date: date, location: location, settings: _settings);
+
   PrayerDay _computeDay() => _prayerTimesService.dayFor(
     now: _now,
     location: location,

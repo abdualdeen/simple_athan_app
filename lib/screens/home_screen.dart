@@ -46,6 +46,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  /// Days between the shown prayer list and today; `0` shows today.
+  int _dayOffset = 0;
+
   @override
   void initState() {
     super.initState();
@@ -115,6 +118,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       listenable: widget.controller,
       builder: (BuildContext context, Widget? _) {
         final PrayerTimesController controller = widget.controller;
+        final DateTime selectedDate = DateUtils.dateOnly(controller.now)
+            .add(Duration(days: _dayOffset));
         if (controller.isInitializing) return const StartupView();
 
         return Scaffold(
@@ -157,9 +162,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     onRetry: controller.refreshLocation,
                   ),
                 PrayerList(
-                  day: controller.day,
+                  schedule: _dayOffset == 0
+                      ? controller.day.schedule
+                      : controller.scheduleForDate(selectedDate),
+                  date: selectedDate,
+                  dayOffset: _dayOffset,
+                  nextId: _dayOffset == 0 ? controller.day.next.id : null,
                   muted: controller.notifications.muted,
                   onToggleMute: controller.togglePrayerNotification,
+                  onPreviousDay: () => setState(() => _dayOffset -= 1),
+                  onNextDay: () => setState(() => _dayOffset += 1),
+                  onBackToToday: () => setState(() => _dayOffset = 0),
                 ),
                 const SizedBox(height: 12),
                 _CalculationNote(controller: controller, onTap: _openSettings),
