@@ -32,7 +32,7 @@ enum AppMotif {
 
 enum AppThemeChoice {
   emerald('Emerald'),
-  dark('Dark'),
+  emeraldDark('Emerald Dark'),
   olive('Olive'),
   sakura('Sakura'),
   sky('Night Sky');
@@ -134,7 +134,7 @@ abstract final class AppPalettes {
     error: Color(0xFFB3261E),
   );
 
-  static const AppPalette dark = AppPalette(
+  static const AppPalette emeraldDark = AppPalette(
     brightness: Brightness.dark,
     primary: Color(0xFF2E7D5B),
     primaryDeep: Color(0xFF07130F),
@@ -207,7 +207,7 @@ abstract final class AppPalettes {
 
   static AppPalette forChoice(AppThemeChoice choice) => switch (choice) {
     AppThemeChoice.emerald => emerald,
-    AppThemeChoice.dark => dark,
+    AppThemeChoice.emeraldDark => emeraldDark,
     AppThemeChoice.olive => olive,
     AppThemeChoice.sakura => sakura,
     AppThemeChoice.sky => sky,
