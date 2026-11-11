@@ -35,6 +35,7 @@ class PrayerList extends StatelessWidget {
     required this.onPreviousDay,
     required this.onNextDay,
     required this.onBackToToday,
+    required this.onPickDate,
   });
 
   final PrayerSchedule schedule;
@@ -53,6 +54,9 @@ class PrayerList extends StatelessWidget {
   final VoidCallback onPreviousDay;
   final VoidCallback onNextDay;
   final VoidCallback onBackToToday;
+
+  /// Opens a date picker to jump straight to a chosen day.
+  final VoidCallback onPickDate;
 
   bool get _isToday => dayOffset == 0;
 
@@ -91,24 +95,53 @@ class PrayerList extends StatelessWidget {
                 icon: const Icon(Icons.chevron_left),
               ),
               Expanded(
-                child: Column(
-                  children: <Widget>[
-                    Text(
-                      _title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall,
+                child: Tooltip(
+                  message: 'Jump to a date',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: onPickDate,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 4,
+                      ),
+                      child: Column(
+                        children: <Widget>[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(
+                                Icons.calendar_month_outlined,
+                                size: 16,
+                                color: palette.inkMuted,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  _title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
+                  ),
                 ),
               ),
               IconButton(

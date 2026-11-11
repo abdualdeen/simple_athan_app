@@ -1464,6 +1464,7 @@ void main() {
               onPreviousDay: () {},
               onNextDay: () {},
               onBackToToday: () {},
+              onPickDate: () {},
             ),
           ),
         ),
@@ -1530,6 +1531,37 @@ void main() {
 
     expect(find.text("Today's Prayers"), findsOneWidget);
     expect(find.text('Back to today'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
+  testWidgets('tapping the date title opens a picker to jump to a date', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+
+    await tester.pumpWidget(
+      AthanApp(controller: controller, themeController: result.themeController),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text("Today's Prayers"));
+    await tester.pumpAndSettle();
+
+    // The fixed test clock is on 1 November 2026; pick the 20th.
+    await tester.tap(find.text('20'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Friday, 20 November 2026'), findsOneWidget);
+    expect(find.text('Back to today'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     controller.dispose();

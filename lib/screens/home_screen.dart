@@ -49,6 +49,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Days between the shown prayer list and today; `0` shows today.
   int _dayOffset = 0;
 
+  /// Local midnight [offset] days from [today]. Calendar-day arithmetic keeps
+  /// the result at midnight across DST changes, unlike adding a [Duration].
+  DateTime _dateForOffset(DateTime today, int offset) =>
+      DateTime(today.year, today.month, today.day + offset);
+
+  /// Opens a date picker and jumps to the chosen day.
+  Future<void> _pickDate() async {
+    final PrayerTimesController controller = widget.controller;
+    final DateTime today = DateUtils.dateOnly(controller.now);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _dateForOffset(today, _dayOffset),
+      firstDate: DateTime(today.year - 10, today.month, today.day),
+      lastDate: DateTime(today.year + 10, today.month, today.day),
+      helpText: 'Jump to a date',
+    );
+    if (picked == null) return;
+    // Compare midnights in UTC so the difference is always whole days.
+    final int offset = DateTime.utc(
+      picked.year,
+      picked.month,
+      picked.day,
+    ).difference(DateTime.utc(today.year, today.month, today.day)).inDays;
+    if (!mounted) return;
+    setState(() => _dayOffset = offset);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -118,8 +145,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       listenable: widget.controller,
       builder: (BuildContext context, Widget? _) {
         final PrayerTimesController controller = widget.controller;
-        final DateTime selectedDate = DateUtils.dateOnly(controller.now)
-            .add(Duration(days: _dayOffset));
+        final DateTime selectedDate = _dateForOffset(
+          controller.now,
+          _dayOffset,
+        );
         if (controller.isInitializing) return const StartupView();
 
         return Scaffold(
@@ -173,6 +202,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onPreviousDay: () => setState(() => _dayOffset -= 1),
                   onNextDay: () => setState(() => _dayOffset += 1),
                   onBackToToday: () => setState(() => _dayOffset = 0),
+                  onPickDate: _pickDate,
                 ),
                 const SizedBox(height: 12),
                 _CalculationNote(controller: controller, onTap: _openSettings),
