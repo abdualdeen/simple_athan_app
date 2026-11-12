@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+    <string name="widget_default_title">Simply Athan</string>
+    <string name="widget_default_next">Next · Fajr 5:42 AM</string>
+    <string name="widget_description">Today\'s prayer times</string>
+    <string name="widget_next_summary">Next · %1$s %2$s</string>
+    <string name="widget_tomorrow_summary">Tomorrow · %1$s %2$s</string>
+    <string name="widget_no_times">Open app to sync</string>
+    <string name="widget_content_description">Prayer times for %1$s. %2$s</string>
+    <string name="prayer_fajr">Fajr</string>
+    <string name="prayer_dhuhr">Dhuhr</string>
+    <string name="prayer_asr">Asr</string>
+    <string name="prayer_maghrib">Maghrib</string>
+    <string name="prayer_isha">Isha</string>
+</resources>

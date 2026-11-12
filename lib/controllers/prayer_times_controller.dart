@@ -26,6 +26,7 @@ import '../models/prayer_schedule.dart';
 import '../models/prayer_settings.dart';
 import '../services/location_search_service.dart';
 import '../services/location_service.dart';
+import '../services/home_widget_service.dart';
 import '../services/notification_service.dart';
 import '../services/prayer_notification_builder.dart';
 import '../services/prayer_times_service.dart';
@@ -42,6 +43,7 @@ class PrayerTimesController extends ChangeNotifier {
     LocationSearchService locationSearchService =
         const GeocodingLocationSearchService(),
     PrayerTimesService prayerTimesService = const PrayerTimesService(),
+    HomeWidgetService homeWidgetService = const HomeWidgetService(),
     DateTime Function()? clock,
   }) : this._(
          locationService,
@@ -49,6 +51,7 @@ class PrayerTimesController extends ChangeNotifier {
          notificationService,
          locationSearchService,
          prayerTimesService,
+         homeWidgetService,
          clock ?? DateTime.now,
        );
 
@@ -58,6 +61,7 @@ class PrayerTimesController extends ChangeNotifier {
     this._notificationService,
     this._locationSearchService,
     this._prayerTimesService,
+    this._homeWidgetService,
     this._clock,
   ) : _now = _clock();
 
@@ -66,6 +70,7 @@ class PrayerTimesController extends ChangeNotifier {
   final NotificationService _notificationService;
   final LocationSearchService _locationSearchService;
   final PrayerTimesService _prayerTimesService;
+  final HomeWidgetService _homeWidgetService;
   final DateTime Function() _clock;
 
   List<AppLocation> _savedLocations = const <AppLocation>[];
@@ -188,6 +193,8 @@ class PrayerTimesController extends ChangeNotifier {
     }
     if (!location.isResolved) {
       await refreshLocation();
+    } else {
+      unawaited(_pushHomeWidget());
     }
   }
 
@@ -429,6 +436,9 @@ class PrayerTimesController extends ChangeNotifier {
 
   /// Rebuilds the rolling window of scheduled prayer reminders.
   Future<void> syncNotifications() async {
+    // The widget shows times even when reminders are off, so it is pushed
+    // before the notification early-returns.
+    unawaited(_pushHomeWidget());
     if (_disposed || !_notificationsReady || !location.isResolved) {
       return;
     }
@@ -458,6 +468,27 @@ class PrayerTimesController extends ChangeNotifier {
       debugPrint('Could not schedule prayer notifications: $error');
     } finally {
       _isSyncingNotifications = false;
+    }
+  }
+
+  /// Pushes the coming week's prayer times to the Android home screen widget.
+  Future<void> _pushHomeWidget() async {
+    if (_disposed || !location.isResolved) return;
+    try {
+      final List<PrayerSchedule> days = <PrayerSchedule>[
+        for (int i = 0; i < 7; i++)
+          _prayerTimesService.scheduleFor(
+            date: _now.add(Duration(days: i)),
+            location: location,
+            settings: _settings,
+          ),
+      ];
+      await _homeWidgetService.updatePrayerTimes(
+        locationName: location.name,
+        days: days,
+      );
+    } catch (error) {
+      debugPrint('Could not update the home screen widget: $error');
     }
   }
 

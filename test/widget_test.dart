@@ -15,7 +15,9 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:athan_app/app.dart';
@@ -33,6 +35,7 @@ import 'package:athan_app/screens/onboarding_screen.dart';
 import 'package:athan_app/screens/qibla_screen.dart';
 import 'package:athan_app/screens/settings_screen.dart';
 import 'package:athan_app/services/compass_service.dart';
+import 'package:athan_app/services/home_widget_service.dart';
 import 'package:athan_app/services/location_search_service.dart';
 import 'package:athan_app/services/location_service.dart';
 import 'package:athan_app/services/notification_service.dart';
@@ -203,6 +206,23 @@ class _FakeCompassService implements CompassService {
 
   @override
   Stream<CompassReading> headingStream() => controller.stream;
+}
+
+/// Captures what the controller pushes to the home screen widget.
+class _FakeHomeWidgetService implements HomeWidgetService {
+  int calls = 0;
+  String? locationName;
+  List<PrayerSchedule>? days;
+
+  @override
+  Future<void> updatePrayerTimes({
+    required String locationName,
+    required List<PrayerSchedule> days,
+  }) async {
+    calls++;
+    this.locationName = locationName;
+    this.days = days;
+  }
 }
 
 class _FakeSoundPreviewService implements SoundPreviewService {
@@ -2019,6 +2039,83 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
     themeController.dispose();
+  });
+
+  test('prayer times are pushed to the home screen widget', () async {
+    final DateTime now = _midMorning();
+    final _FakeHomeWidgetService widgetService = _FakeHomeWidgetService();
+    final _InMemorySettingsStore store = _InMemorySettingsStore()
+      ..onboardingComplete = true;
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_london),
+      settingsStore: store,
+      notificationService: _FakeNotificationService(),
+      homeWidgetService: widgetService,
+      clock: () => now,
+    );
+
+    await controller.initialize();
+
+    expect(widgetService.calls, greaterThanOrEqualTo(1));
+    expect(widgetService.locationName, 'London, United Kingdom');
+    expect(widgetService.days, hasLength(7));
+    final PrayerSchedule pushed = widgetService.days!.first;
+    expect(pushed.date.day, controller.day.schedule.date.day);
+    // The five obligatory prayers, sunrise excluded.
+    expect(
+      pushed.prayers.where((PrayerTime prayer) => prayer.isPrayer),
+      hasLength(5),
+    );
+    expect(
+      pushed.prayers.first.time,
+      controller.day.schedule.prayers.first.time,
+    );
+
+    controller.dispose();
+  });
+
+  test('the widget service sends the five prayers over the channel', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    MethodCall? call;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(HomeWidgetService.channel, (
+          MethodCall message,
+        ) async {
+          call = message;
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(HomeWidgetService.channel, null),
+    );
+
+    const PrayerTimesService service = PrayerTimesService();
+    final PrayerSchedule schedule = service.scheduleFor(
+      date: DateTime(2026, 11, 1),
+      location: _london,
+      settings: const PrayerSettings(),
+    );
+    await const HomeWidgetService().updatePrayerTimes(
+      locationName: 'London, United Kingdom',
+      days: <PrayerSchedule>[schedule],
+    );
+
+    expect(call, isNotNull);
+    expect(call!.method, 'updatePrayerTimes');
+    final Map<Object?, Object?> args =
+        call!.arguments! as Map<Object?, Object?>;
+    expect(args['locationName'], 'London, United Kingdom');
+    final List<Object?> days = args['days']! as List<Object?>;
+    expect(days, hasLength(1));
+    final List<Object?> times = days.first! as List<Object?>;
+    final List<int> expected = <int>[
+      for (final PrayerTime prayer in schedule.prayers)
+        if (prayer.isPrayer) prayer.time.millisecondsSinceEpoch,
+    ];
+    expect(times, expected);
   });
 
   testWidgets('settings can pick the athan sound', (WidgetTester tester) async {

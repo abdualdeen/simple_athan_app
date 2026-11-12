@@ -30,6 +30,10 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        PrayerTimesWidgetProviderChannel.register(
+            flutterEngine.dartExecutor.binaryMessenger,
+            this
+        )
     }
 
     private fun play(soundName: String?) {
