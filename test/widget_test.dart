@@ -1231,6 +1231,77 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
+    themeController.dispose();
+  });
+
+  testWidgets('the intro theme step can enable the auto night theme', (
+    WidgetTester tester,
+  ) async {
+    final DateTime now = _midMorning();
+    final _FakeNotificationService fake = _FakeNotificationService();
+    final _InMemorySettingsStore store = _InMemorySettingsStore();
+    final _FakeLocationSearchService search = _FakeLocationSearchService(
+      const <AppLocation>[_paris],
+    );
+    final PrayerTimesController controller = PrayerTimesController(
+      locationService: const _FakeLocationService(_london),
+      settingsStore: store,
+      notificationService: fake,
+      locationSearchService: search,
+      clock: () => now,
+    );
+    final ThemeController themeController = ThemeController(
+      settingsStore: store,
+    );
+    await controller.initialize();
+    await themeController.initialize();
+
+    await tester.pumpWidget(
+      AthanApp(controller: controller, themeController: themeController),
+    );
+    await tester.pump();
+
+    // Welcome step.
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
+
+    // Notifications step.
+    await tester.tap(find.text('Not now'));
+    await tester.pumpAndSettle();
+
+    // Location step: enter a place manually.
+    await tester.tap(find.text('Enter it manually'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Paris');
+    await tester.tap(find.text('Search'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 10));
+    await tester.tap(find.text('Paris, France'));
+    await tester.pumpAndSettle();
+
+    // Theme step: the auto night theme toggle sits below the theme list.
+    expect(find.text('Pick a theme'), findsOneWidget);
+    expect(themeController.autoTheme, isFalse);
+
+    await tester.ensureVisible(find.text('Auto night theme'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Switch));
+    await tester.pump();
+
+    expect(themeController.autoTheme, isTrue);
+    expect(store.autoTheme, isTrue);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(controller.isOnboardingComplete, isTrue);
+    expect(themeController.autoTheme, isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+    themeController.dispose();
   });
 
   testWidgets('the intro offers an adhan sound when reminders are enabled', (

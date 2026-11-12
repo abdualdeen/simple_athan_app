@@ -16,6 +16,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../controllers/prayer_times_controller.dart';
 import '../controllers/theme_controller.dart';
@@ -678,7 +679,6 @@ class _ThemeStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppPalette palette = context.palette;
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
@@ -697,23 +697,30 @@ class _ThemeStep extends StatelessWidget {
           style: TextStyle(fontSize: 14, color: palette.inkMuted),
         ),
         const SizedBox(height: 20),
-        ListenableBuilder(
-          listenable: themeController,
-          builder: (BuildContext context, Widget? _) {
-            return Column(
-              children: <Widget>[
-                for (final AppThemeChoice choice in AppThemeChoice.values)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _ThemeRow(
-                      choice: choice,
-                      selected: themeController.choice == choice,
-                      onTap: () => themeController.select(choice),
-                    ),
-                  ),
-              ],
-            );
-          },
+        // The list scrolls on short screens so the Continue button stays
+        // reachable.
+        Flexible(
+          child: SingleChildScrollView(
+            child: ListenableBuilder(
+              listenable: themeController,
+              builder: (BuildContext context, Widget? _) {
+                return Column(
+                  children: <Widget>[
+                    for (final AppThemeChoice choice in AppThemeChoice.values)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _ThemeRow(
+                          choice: choice,
+                          selected: themeController.choice == choice,
+                          onTap: () => themeController.select(choice),
+                        ),
+                      ),
+                    _AutoThemeRow(themeController: themeController),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         FilledButton(
@@ -786,6 +793,44 @@ class _ThemeRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AutoThemeRow extends StatelessWidget {
+  const _AutoThemeRow({required this.themeController});
+
+  final ThemeController themeController;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
+    return Material(
+      color: palette.surface,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: SwitchListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+        secondary: Icon(Icons.brightness_4_outlined, color: palette.primary),
+        title: Text(
+          'Auto night theme',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: palette.ink,
+          ),
+        ),
+        subtitle: Text(
+          'Switch to the dark theme at sunset',
+          style: TextStyle(fontSize: 12, color: palette.inkMuted),
+        ),
+        visualDensity: VisualDensity.compact,
+        value: themeController.autoTheme,
+        onChanged: (bool value) {
+          HapticFeedback.selectionClick();
+          themeController.setAutoTheme(value);
+        },
       ),
     );
   }
