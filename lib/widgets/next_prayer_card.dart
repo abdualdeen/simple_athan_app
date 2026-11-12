@@ -30,6 +30,7 @@ class NextPrayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppPalette palette = context.palette;
+    final bool isDark = palette.brightness == Brightness.dark;
     final PrayerTime next = day.next;
     final PrayerTime previous = day.previous;
     final Duration remaining = next.time.difference(now);
@@ -44,9 +45,14 @@ class NextPrayerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: palette.primary.withValues(alpha: 0.18),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+            // On dark backgrounds a large colored glow reads as a halo
+            // spilling onto the content below, so dark themes get a tighter,
+            // neutral shadow instead.
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.35)
+                : palette.primary.withValues(alpha: 0.18),
+            blurRadius: isDark ? 14 : 28,
+            offset: Offset(0, isDark ? 5 : 14),
           ),
         ],
       ),
