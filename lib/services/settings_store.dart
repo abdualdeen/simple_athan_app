@@ -41,6 +41,11 @@ abstract interface class SettingsStore {
   Future<AppThemeChoice> loadTheme();
   Future<void> saveTheme(AppThemeChoice choice);
 
+  /// Whether the theme should switch to its dark counterpart at sunset and
+  /// back at sunrise.
+  Future<bool> loadAutoTheme();
+  Future<void> saveAutoTheme(bool enabled);
+
   /// Whether the first-launch intro has been finished.
   Future<bool> loadOnboardingComplete();
   Future<void> saveOnboardingComplete(bool complete);
@@ -62,6 +67,7 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   static const String _mutedPrayersKey = 'muted_prayers';
   static const String _notificationSoundKey = 'notification_sound';
   static const String _themeKey = 'app_theme';
+  static const String _autoThemeKey = 'auto_night_theme';
   static const String _onboardingCompleteKey = 'onboarding_complete';
   static const String _automaticLocationKey = 'use_automatic_location';
 
@@ -191,6 +197,18 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   Future<void> saveTheme(AppThemeChoice choice) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeKey, choice.name);
+  }
+
+  @override
+  Future<bool> loadAutoTheme() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoThemeKey) ?? false;
+  }
+
+  @override
+  Future<void> saveAutoTheme(bool enabled) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoThemeKey, enabled);
   }
 
   @override

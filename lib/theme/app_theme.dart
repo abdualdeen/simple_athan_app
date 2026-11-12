@@ -48,6 +48,19 @@ enum AppThemeChoice {
     (AppThemeChoice choice) => choice.name == name,
     orElse: () => AppThemeChoice.emerald,
   );
+
+  /// The light or dark counterpart of this theme, used when the auto night
+  /// theme switches at sunset and sunrise.
+  AppThemeChoice get counterpart => switch (this) {
+    AppThemeChoice.emerald => AppThemeChoice.emeraldDark,
+    AppThemeChoice.emeraldDark => AppThemeChoice.emerald,
+    AppThemeChoice.olive => AppThemeChoice.oliveDark,
+    AppThemeChoice.oliveDark => AppThemeChoice.olive,
+    AppThemeChoice.sakura => AppThemeChoice.sakuraDark,
+    AppThemeChoice.sakuraDark => AppThemeChoice.sakura,
+    AppThemeChoice.sky => AppThemeChoice.skyLight,
+    AppThemeChoice.skyLight => AppThemeChoice.sky,
+  };
 }
 
 /// Semantic colors used by the app's custom widgets.
@@ -282,7 +295,16 @@ extension AppPaletteContext on BuildContext {
 abstract final class AppTheme {
   static ThemeData get light => forChoice(AppThemeChoice.emerald);
 
-  static ThemeData forChoice(AppThemeChoice choice) {
+  // The theme is resolved on every controller tick (once a second), so the
+  // built ThemeData is cached per choice; a new instance each time would make
+  // every inherited-theme dependent rebuild on every tick.
+  static final Map<AppThemeChoice, ThemeData> _cache =
+      <AppThemeChoice, ThemeData>{};
+
+  static ThemeData forChoice(AppThemeChoice choice) =>
+      _cache.putIfAbsent(choice, () => _build(choice));
+
+  static ThemeData _build(AppThemeChoice choice) {
     final AppPalette palette = AppPalettes.forChoice(choice);
     final ColorScheme scheme =
         ColorScheme.fromSeed(

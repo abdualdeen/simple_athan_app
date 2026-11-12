@@ -119,6 +119,7 @@ class _InMemorySettingsStore implements SettingsStore {
   PrayerSettings settings = const PrayerSettings();
   NotificationSettings notificationSettings = const NotificationSettings();
   AppThemeChoice theme = AppThemeChoice.emerald;
+  bool autoTheme = false;
   List<AppLocation> locations = const <AppLocation>[];
   int activeIndex = 0;
   bool methodSaved = false;
@@ -174,6 +175,12 @@ class _InMemorySettingsStore implements SettingsStore {
 
   @override
   Future<void> saveTheme(AppThemeChoice value) async => theme = value;
+
+  @override
+  Future<bool> loadAutoTheme() async => autoTheme;
+
+  @override
+  Future<void> saveAutoTheme(bool value) async => autoTheme = value;
 }
 
 class _FakeLocationSearchService implements LocationSearchService {
@@ -1805,6 +1812,138 @@ void main() {
       find.byType(SettingsScreen),
     );
     expect(settingsContext.palette.primary, AppPalettes.sakura.primary);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+    themeController.dispose();
+  });
+
+  test('every theme has a light and dark counterpart', () {
+    for (final AppThemeChoice choice in AppThemeChoice.values) {
+      final AppPalette own = AppPalettes.forChoice(choice);
+      final AppPalette other = AppPalettes.forChoice(choice.counterpart);
+      expect(other.brightness, isNot(own.brightness));
+      expect(choice.counterpart.counterpart, choice);
+    }
+  });
+
+  test('setAutoTheme persists the setting', () async {
+    final result = await _createController();
+    expect(result.themeController.autoTheme, isFalse);
+
+    await result.themeController.setAutoTheme(true);
+
+    expect(result.themeController.autoTheme, isTrue);
+    expect(result.store.autoTheme, isTrue);
+
+    result.controller.dispose();
+    result.themeController.dispose();
+  });
+
+  testWidgets(
+    'auto night theme switches to the dark counterpart after sunset',
+    (WidgetTester tester) async {
+      const PrayerTimesService service = PrayerTimesService();
+      final PrayerSchedule schedule = service.scheduleFor(
+        date: DateTime(2026, 11, 1),
+        location: _london,
+        settings: const PrayerSettings(),
+      );
+      final DateTime maghrib = schedule.prayers
+          .firstWhere((PrayerTime prayer) => prayer.id == PrayerId.maghrib)
+          .time;
+      final DateTime now = maghrib.add(const Duration(hours: 2));
+
+      final _FakeNotificationService fake = _FakeNotificationService();
+      final _InMemorySettingsStore store = _InMemorySettingsStore()
+        ..onboardingComplete = true;
+      final PrayerTimesController controller = PrayerTimesController(
+        locationService: const _FakeLocationService(_london),
+        settingsStore: store,
+        notificationService: fake,
+        clock: () => now,
+      );
+      final ThemeController themeController = ThemeController(
+        settingsStore: store,
+      );
+      await controller.initialize();
+      await themeController.initialize();
+      await themeController.setAutoTheme(true);
+
+      await tester.pumpWidget(
+        AthanApp(controller: controller, themeController: themeController),
+      );
+      await tester.pump();
+
+      final BuildContext homeContext = tester.element(
+        find.text('Assalamu Alaikum'),
+      );
+      expect(homeContext.palette.brightness, Brightness.dark);
+      expect(homeContext.palette.primary, AppPalettes.emeraldDark.primary);
+      // The user's chosen theme itself is not rewritten.
+      expect(themeController.choice, AppThemeChoice.emerald);
+
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+      themeController.dispose();
+    },
+  );
+
+  testWidgets('auto night theme keeps the light theme during the day', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    await result.themeController.setAutoTheme(true);
+
+    await tester.pumpWidget(
+      AthanApp(
+        controller: result.controller,
+        themeController: result.themeController,
+      ),
+    );
+    await tester.pump();
+
+    final BuildContext homeContext = tester.element(
+      find.text('Assalamu Alaikum'),
+    );
+    // The fixed test clock is mid-morning, between Fajr and Dhuhr.
+    expect(homeContext.palette.brightness, Brightness.light);
+    expect(homeContext.palette.primary, AppPalettes.emerald.primary);
+
+    await tester.pumpWidget(const SizedBox());
+    result.controller.dispose();
+    result.themeController.dispose();
+  });
+
+  testWidgets('settings can toggle the auto night theme', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final result = await _createController();
+    final PrayerTimesController controller = result.controller;
+    final ThemeController themeController = result.themeController;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: SettingsScreen(
+          controller: controller,
+          themeController: themeController,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(themeController.autoTheme, isFalse);
+
+    await tester.tap(find.text('Auto night theme'));
+    await tester.pump();
+
+    expect(themeController.autoTheme, isTrue);
+    expect(result.store.autoTheme, isTrue);
 
     await tester.pumpWidget(const SizedBox());
     controller.dispose();

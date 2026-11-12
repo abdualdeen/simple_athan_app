@@ -34,13 +34,19 @@ class AthanApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The prayer controller is listened to as well so the theme flips live
+    // when the auto night theme crosses sunset or sunrise.
     return ListenableBuilder(
-      listenable: themeController,
+      listenable: Listenable.merge(<Listenable>[themeController, controller]),
       builder: (BuildContext context, Widget? _) {
+        AppThemeChoice choice = themeController.choice;
+        if (themeController.autoTheme && controller.isNight) {
+          choice = choice.counterpart;
+        }
         return MaterialApp(
           title: 'Athan',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.forChoice(themeController.choice),
+          theme: AppTheme.forChoice(choice),
           home: _EntryScreen(
             controller: controller,
             themeController: themeController,

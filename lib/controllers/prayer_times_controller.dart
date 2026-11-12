@@ -104,6 +104,20 @@ class PrayerTimesController extends ChangeNotifier {
   PrayerSettings get settings => _settings;
   NotificationSettings get notifications => _notifications;
   PrayerDay get day => _day ??= _computeDay();
+
+  /// Whether the sun is down at the shown location: before today's sunrise
+  /// or after today's Maghrib. Used by the auto night theme.
+  bool get isNight {
+    final PrayerDay current = day;
+    final DateTime sunrise = current.schedule.prayers
+        .firstWhere((PrayerTime prayer) => prayer.id == PrayerId.sunrise)
+        .time;
+    final DateTime maghrib = current.schedule.prayers
+        .firstWhere((PrayerTime prayer) => prayer.id == PrayerId.maghrib)
+        .time;
+    return now.isBefore(sunrise) || now.isAfter(maghrib);
+  }
+
   bool get isInitializing => _isInitializing;
   bool get isLocating => _isLocating;
   bool get notificationsReady => _notificationsReady;

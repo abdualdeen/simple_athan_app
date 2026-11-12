@@ -50,7 +50,7 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
       body: ListenableBuilder(
-        listenable: controller,
+        listenable: Listenable.merge(<Listenable>[controller, themeController]),
         builder: (BuildContext context, Widget? _) {
           final AppPalette palette = context.palette;
           return ListView(
@@ -124,11 +124,39 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const _SectionLabel('APPEARANCE'),
               _SettingsCard(
-                child: _SettingRow(
-                  icon: Icons.palette_outlined,
-                  title: 'Theme',
-                  value: themeController.choice.label,
-                  onTap: () => _pickTheme(context),
+                child: Column(
+                  children: <Widget>[
+                    _SettingRow(
+                      icon: Icons.palette_outlined,
+                      title: 'Theme',
+                      value: themeController.choice.label,
+                      onTap: () => _pickTheme(context),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.brightness_4_outlined,
+                        color: palette.primary,
+                      ),
+                      title: Text(
+                        'Auto night theme',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: palette.ink,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Switch to the dark theme at sunset',
+                        style: TextStyle(fontSize: 12, color: palette.inkMuted),
+                      ),
+                      value: themeController.autoTheme,
+                      onChanged: (bool value) {
+                        HapticFeedback.selectionClick();
+                        themeController.setAutoTheme(value);
+                      },
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),

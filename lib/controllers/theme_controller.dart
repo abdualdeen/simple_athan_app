@@ -27,13 +27,19 @@ class ThemeController extends ChangeNotifier {
 
   final SettingsStore _settingsStore;
   AppThemeChoice _choice = AppThemeChoice.emerald;
+  bool _autoTheme = false;
   bool _disposed = false;
 
   AppThemeChoice get choice => _choice;
 
+  /// Whether the theme switches to its dark counterpart at sunset and back
+  /// at sunrise.
+  bool get autoTheme => _autoTheme;
+
   Future<void> initialize() async {
     try {
       _choice = await _settingsStore.loadTheme();
+      _autoTheme = await _settingsStore.loadAutoTheme();
     } catch (error) {
       debugPrint('Failed to load theme: $error');
     }
@@ -45,6 +51,14 @@ class ThemeController extends ChangeNotifier {
     _choice = choice;
     _notify();
     await _settingsStore.saveTheme(choice);
+  }
+
+  /// Turns the sunset-based theme switching on or off.
+  Future<void> setAutoTheme(bool enabled) async {
+    if (_autoTheme == enabled) return;
+    _autoTheme = enabled;
+    _notify();
+    await _settingsStore.saveAutoTheme(enabled);
   }
 
   void _notify() {
