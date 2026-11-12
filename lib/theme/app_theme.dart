@@ -34,8 +34,11 @@ enum AppThemeChoice {
   emerald('Emerald'),
   emeraldDark('Emerald Dark'),
   olive('Olive'),
+  oliveDark('Olive Dark'),
   sakura('Sakura'),
-  sky('Night Sky');
+  sakuraDark('Sakura Dark'),
+  sky('Night Sky'),
+  skyLight('Night Sky Light');
 
   const AppThemeChoice(this.label);
 
@@ -169,6 +172,24 @@ abstract final class AppPalettes {
     error: Color(0xFFB3261E),
   );
 
+  static const AppPalette oliveDark = AppPalette(
+    brightness: Brightness.dark,
+    motif: AppMotif.olive,
+    primary: Color(0xFF71874A),
+    primaryDeep: Color(0xFF12150B),
+    primarySoft: Color(0xFF44502A),
+    accent: Color(0xFFE0C15C),
+    accentDark: Color(0xFFC9A227),
+    accentSoft: Color(0xFFF0DCA0),
+    background: Color(0xFF141609),
+    surface: Color(0xFF1E2114),
+    ink: Color(0xFFF2F4E8),
+    inkMuted: Color(0xFFA8AD98),
+    label: Color(0xFFC2D188),
+    onPrimary: Color(0xFFFFFFFF),
+    error: Color(0xFFFFB4AB),
+  );
+
   static const AppPalette sakura = AppPalette(
     brightness: Brightness.light,
     motif: AppMotif.sakura,
@@ -185,6 +206,24 @@ abstract final class AppPalettes {
     label: Color(0xFFB03A5B),
     onPrimary: Color(0xFFFFFFFF),
     error: Color(0xFFB3261E),
+  );
+
+  static const AppPalette sakuraDark = AppPalette(
+    brightness: Brightness.dark,
+    motif: AppMotif.sakura,
+    primary: Color(0xFFA84E6E),
+    primaryDeep: Color(0xFF1C0F16),
+    primarySoft: Color(0xFF6E3248),
+    accent: Color(0xFFE0C15C),
+    accentDark: Color(0xFFC9A227),
+    accentSoft: Color(0xFFF0DCA0),
+    background: Color(0xFF170E12),
+    surface: Color(0xFF22161B),
+    ink: Color(0xFFF7E9EE),
+    inkMuted: Color(0xFFB39AA5),
+    label: Color(0xFFE39CB4),
+    onPrimary: Color(0xFFFFFFFF),
+    error: Color(0xFFFFB4AB),
   );
 
   static const AppPalette sky = AppPalette(
@@ -205,12 +244,33 @@ abstract final class AppPalettes {
     error: Color(0xFFFFB4AB),
   );
 
+  static const AppPalette skyLight = AppPalette(
+    brightness: Brightness.light,
+    motif: AppMotif.nightSky,
+    primary: Color(0xFF2E4A6B),
+    primaryDeep: Color(0xFF16273F),
+    primarySoft: Color(0xFF3D5A80),
+    accent: Color(0xFFC9A227),
+    accentDark: Color(0xFF8A6D12),
+    accentSoft: Color(0xFFE7CE8A),
+    background: Color(0xFFF2F5FA),
+    surface: Color(0xFFFFFFFF),
+    ink: Color(0xFF18273B),
+    inkMuted: Color(0xFF61718A),
+    label: Color(0xFF3A6B9E),
+    onPrimary: Color(0xFFFFFFFF),
+    error: Color(0xFFB3261E),
+  );
+
   static AppPalette forChoice(AppThemeChoice choice) => switch (choice) {
     AppThemeChoice.emerald => emerald,
     AppThemeChoice.emeraldDark => emeraldDark,
     AppThemeChoice.olive => olive,
+    AppThemeChoice.oliveDark => oliveDark,
     AppThemeChoice.sakura => sakura,
+    AppThemeChoice.sakuraDark => sakuraDark,
     AppThemeChoice.sky => sky,
+    AppThemeChoice.skyLight => skyLight,
   };
 }
 

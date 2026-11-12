@@ -1373,6 +1373,47 @@ void main() {
     result.controller.dispose();
   });
 
+  testWidgets('the sakura dark theme shows the scene with dark colors', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    await result.themeController.select(AppThemeChoice.sakuraDark);
+
+    await tester.pumpWidget(
+      AthanApp(
+        controller: result.controller,
+        themeController: result.themeController,
+      ),
+    );
+    // Advance a few frames of the repeating petal animation; the scene never
+    // settles, so pumpAndSettle must not be used here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('Assalamu Alaikum'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is CustomPaint &&
+            widget.painter != null &&
+            widget.painter.runtimeType.toString() == '_SakuraScenePainter',
+      ),
+      findsOneWidget,
+    );
+
+    final BuildContext homeContext = tester.element(
+      find.text('Assalamu Alaikum'),
+    );
+    final AppPalette palette = homeContext.palette;
+    expect(palette.brightness, Brightness.dark);
+    expect(palette.motif, AppMotif.sakura);
+    expect(Theme.of(homeContext).scaffoldBackgroundColor, palette.background);
+    expect(palette.background.computeLuminance(), lessThan(0.2));
+
+    await tester.pumpWidget(const SizedBox());
+    result.controller.dispose();
+  });
+
   testWidgets('the olive theme shows the decorative header scene', (
     WidgetTester tester,
   ) async {
@@ -1405,6 +1446,47 @@ void main() {
     result.controller.dispose();
   });
 
+  testWidgets('the olive dark theme shows the scene with dark colors', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    await result.themeController.select(AppThemeChoice.oliveDark);
+
+    await tester.pumpWidget(
+      AthanApp(
+        controller: result.controller,
+        themeController: result.themeController,
+      ),
+    );
+    // Advance a few frames of the repeating animation; the scene never
+    // settles, so pumpAndSettle must not be used here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('Assalamu Alaikum'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is CustomPaint &&
+            widget.painter != null &&
+            widget.painter.runtimeType.toString() == '_OliveScenePainter',
+      ),
+      findsOneWidget,
+    );
+
+    final BuildContext homeContext = tester.element(
+      find.text('Assalamu Alaikum'),
+    );
+    final AppPalette palette = homeContext.palette;
+    expect(palette.brightness, Brightness.dark);
+    expect(palette.motif, AppMotif.olive);
+    expect(Theme.of(homeContext).scaffoldBackgroundColor, palette.background);
+    expect(palette.background.computeLuminance(), lessThan(0.2));
+
+    await tester.pumpWidget(const SizedBox());
+    result.controller.dispose();
+  });
+
   testWidgets('the night sky theme shows the decorative header scene', (
     WidgetTester tester,
   ) async {
@@ -1432,6 +1514,47 @@ void main() {
       ),
       findsOneWidget,
     );
+
+    await tester.pumpWidget(const SizedBox());
+    result.controller.dispose();
+  });
+
+  testWidgets('the night sky light theme shows the scene with light colors', (
+    WidgetTester tester,
+  ) async {
+    final result = await _createController();
+    await result.themeController.select(AppThemeChoice.skyLight);
+
+    await tester.pumpWidget(
+      AthanApp(
+        controller: result.controller,
+        themeController: result.themeController,
+      ),
+    );
+    // Advance a few frames of the repeating animation; the scene never
+    // settles, so pumpAndSettle must not be used here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('Assalamu Alaikum'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is CustomPaint &&
+            widget.painter != null &&
+            widget.painter.runtimeType.toString() == '_NightSkyScenePainter',
+      ),
+      findsOneWidget,
+    );
+
+    final BuildContext homeContext = tester.element(
+      find.text('Assalamu Alaikum'),
+    );
+    final AppPalette palette = homeContext.palette;
+    expect(palette.brightness, Brightness.light);
+    expect(palette.motif, AppMotif.nightSky);
+    expect(Theme.of(homeContext).scaffoldBackgroundColor, palette.background);
+    expect(palette.background.computeLuminance(), greaterThan(0.8));
 
     await tester.pumpWidget(const SizedBox());
     result.controller.dispose();
