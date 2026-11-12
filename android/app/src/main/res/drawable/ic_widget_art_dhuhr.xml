@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="64dp" android:viewportWidth="64" android:viewportHeight="64">
+
+    <!-- Sun disc -->
+    <path android:fillColor="#FFFFD86B" android:pathData="M32,32m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0" />
+
+    <!-- Rays -->
+    <path
+        android:strokeColor="#FFFFD86B"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M32,6 L32,14 M32,50 L32,58 M6,32 L14,32 M50,32 L58,32 M13.6,13.6 L19.3,19.3 M44.7,44.7 L50.4,50.4 M13.6,50.4 L19.3,44.7 M44.7,19.3 L50.4,13.6"
+    />
+</vector>

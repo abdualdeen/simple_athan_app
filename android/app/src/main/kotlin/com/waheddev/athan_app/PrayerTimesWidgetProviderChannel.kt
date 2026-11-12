@@ -35,6 +35,7 @@ object PrayerTimesWidgetProviderChannel {
                         return@setMethodCallHandler
                     }
                     PrayerTimesWidgetProvider.saveAndRefresh(context, locationName, days)
+                    VibrantPrayerTimesWidgetProvider.refresh(context)
                     result.success(null)
                 }
                 else -> result.notImplemented()

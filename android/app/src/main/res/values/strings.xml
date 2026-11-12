@@ -3,6 +3,8 @@
     <string name="widget_default_title">Simply Athan</string>
     <string name="widget_default_next">Next · Fajr 5:42 AM</string>
     <string name="widget_description">Today\'s prayer times</string>
+    <string name="widget_vibrant_label">Simply Athan · Sky</string>
+    <string name="widget_vibrant_description">Colourful prayer times with sky graphics</string>
     <string name="widget_next_summary">Next · %1$s %2$s</string>
     <string name="widget_tomorrow_summary">Tomorrow · %1$s %2$s</string>
     <string name="widget_no_times">Open app to sync</string>

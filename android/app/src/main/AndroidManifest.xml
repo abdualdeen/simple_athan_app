@@ -52,6 +52,16 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/prayer_times_widget_info" />
         </receiver>
+        <!-- Colourful sky-panel widget with the five daily prayer times. -->
+        <receiver android:exported="false" android:label="@string/widget_vibrant_label" android:name=".VibrantPrayerTimesWidgetProvider">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/prayer_times_widget_vibrant_info" />
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
