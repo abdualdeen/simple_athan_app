@@ -94,12 +94,12 @@
                     android:includeFontPadding="false"
                     android:letterSpacing="0.02"
                     android:maxLines="1"
-                    android:shadowColor="#66000000"
+                    android:shadowColor="#66FFFFFF"
                     android:shadowDx="0"
                     android:shadowDy="1"
                     android:shadowRadius="2"
                     android:text="@string/prayer_fajr"
-                    android:textColor="#FFFFFFFF"
+                    android:textColor="#FF1B2A4A"
                     android:textSize="10sp"
                 />
 
@@ -111,12 +111,12 @@
                     android:fontFamily="sans-serif-medium"
                     android:includeFontPadding="false"
                     android:maxLines="1"
-                    android:shadowColor="#66000000"
+                    android:shadowColor="#66FFFFFF"
                     android:shadowDx="0"
                     android:shadowDy="1"
                     android:shadowRadius="2"
                     android:text="--:--"
-                    android:textColor="#FFFFFFFF"
+                    android:textColor="#FF1B2A4A"
                     android:textSize="12sp"
                 />
             </LinearLayout>
@@ -176,7 +176,7 @@
                     android:shadowDy="1"
                     android:shadowRadius="2"
                     android:text="@string/prayer_dhuhr"
-                    android:textColor="#FF1B2A4A"
+                    android:textColor="#FF0F2A4A"
                     android:textSize="10sp"
                 />
 
@@ -193,8 +193,9 @@
                     android:shadowDy="1"
                     android:shadowRadius="2"
                     android:text="--:--"
-                    android:textColor="#FF1B2A4A"
+                    android:textColor="#FF0F2A4A"
                     android:textSize="12sp"
+                />
                 />
             </LinearLayout>
 
@@ -248,13 +249,14 @@
                     android:includeFontPadding="false"
                     android:letterSpacing="0.02"
                     android:maxLines="1"
-                    android:shadowColor="#66000000"
+                    android:shadowColor="#66FFFFFF"
                     android:shadowDx="0"
                     android:shadowDy="1"
                     android:shadowRadius="2"
                     android:text="@string/prayer_asr"
-                    android:textColor="#FFFFFFFF"
+                    android:textColor="#FF2A2418"
                     android:textSize="10sp"
+                />
                 />
 
                 <TextView
@@ -265,13 +267,14 @@
                     android:fontFamily="sans-serif-medium"
                     android:includeFontPadding="false"
                     android:maxLines="1"
-                    android:shadowColor="#66000000"
+                    android:shadowColor="#66FFFFFF"
                     android:shadowDx="0"
                     android:shadowDy="1"
                     android:shadowRadius="2"
                     android:text="--:--"
-                    android:textColor="#FFFFFFFF"
+                    android:textColor="#FF2A2418"
                     android:textSize="12sp"
+                />
                 />
             </LinearLayout>
 

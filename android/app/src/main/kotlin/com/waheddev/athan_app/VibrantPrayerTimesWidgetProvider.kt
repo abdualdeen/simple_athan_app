@@ -52,23 +52,30 @@ class VibrantPrayerTimesWidgetProvider : AppWidgetProvider() {
     companion object {
         private val ACCENT = Color.rgb(0xFF, 0xE0, 0x8A)
         private val ACCENT_DARK = Color.rgb(0x8A, 0x6D, 0x12)
+        private val AMBER_DARK = Color.rgb(0x8A, 0x4A, 0x12)
+        private val INK_DAWN = Color.rgb(0x1B, 0x2A, 0x4A)
+        private val INK_NOON = Color.rgb(0x0F, 0x2A, 0x4A)
+        private val INK_GOLD = Color.rgb(0x2A, 0x24, 0x18)
         private val TEXT_LIGHT = Color.rgb(0xFF, 0xFF, 0xFF)
-        private val TEXT_DARK = Color.rgb(0x1B, 0x2A, 0x4A)
-        private val MUTED_LIGHT = Color.rgb(0xD8, 0xE2, 0xF5)
-        private val MUTED_DARK = Color.rgb(0x3A, 0x4A, 0x6A)
+        private val MUTED_DAWN = Color.rgb(0x6A, 0x5A, 0x6A)
+        private val MUTED_NOON = Color.rgb(0x5A, 0x7A, 0x9A)
+        private val MUTED_GOLD = Color.rgb(0x6A, 0x5A, 0x3A)
+        private val MUTED_SUNSET = Color.rgb(0xFF, 0xE0, 0xD0)
+        private val MUTED_NIGHT = Color.rgb(0xA8, 0xB0, 0xC8)
 
-        // Dhuhr is the only light panel, so it uses dark ink for contrast.
+        // Labels sit on the horizon colour, so the light dawn, noon and
+        // afternoon horizons use dark ink while sunset and night stay white.
         private val NAME_COLORS = intArrayOf(
-            TEXT_LIGHT, TEXT_DARK, TEXT_LIGHT, TEXT_LIGHT, TEXT_LIGHT,
+            INK_DAWN, INK_NOON, INK_GOLD, TEXT_LIGHT, TEXT_LIGHT,
         )
         private val TIME_COLORS = intArrayOf(
-            TEXT_LIGHT, TEXT_DARK, TEXT_LIGHT, TEXT_LIGHT, TEXT_LIGHT,
+            INK_DAWN, INK_NOON, INK_GOLD, TEXT_LIGHT, TEXT_LIGHT,
         )
         private val MUTED_COLORS = intArrayOf(
-            MUTED_LIGHT, MUTED_DARK, MUTED_LIGHT, MUTED_LIGHT, MUTED_LIGHT,
+            MUTED_DAWN, MUTED_NOON, MUTED_GOLD, MUTED_SUNSET, MUTED_NIGHT,
         )
         private val NEXT_NAME_COLORS = intArrayOf(
-            ACCENT, ACCENT_DARK, ACCENT, ACCENT, ACCENT,
+            AMBER_DARK, ACCENT_DARK, AMBER_DARK, ACCENT, ACCENT,
         )
 
         private val PRAYER_NAME_IDS = intArrayOf(
@@ -154,7 +161,7 @@ class VibrantPrayerTimesWidgetProvider : AppWidgetProvider() {
                     views.setInt(
                         HIGHLIGHT_IDS[i],
                         "setBackgroundResource",
-                        if (i == 1) R.drawable.widget_vibrant_highlight_dark
+                        if (i <= 2) R.drawable.widget_vibrant_highlight_dark
                         else R.drawable.widget_vibrant_highlight,
                     )
                 }
