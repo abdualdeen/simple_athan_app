@@ -100,7 +100,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _requestExactAlarms() async {
     await widget.controller.requestExactAlarms();
     if (!mounted) return;
-    setState(() => _exactAlarmsAllowed = widget.controller.exactAlarmsAllowed);
+    bool alarmsStepRemoved = false;
+    setState(() {
+      _exactAlarmsAllowed = widget.controller.exactAlarmsAllowed;
+      // Granting the permission removes the alarms step from _steps, which
+      // shifts the sound step into the current index — advancing again here
+      // would skip the sound step entirely.
+      alarmsStepRemoved = _steps[_step] != _OnboardingStep.alarms;
+    });
+    if (alarmsStepRemoved) return;
     _next();
   }
 
@@ -160,7 +168,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   child: KeyedSubtree(
-                    key: ValueKey<int>(_step),
+                    key: ValueKey<_OnboardingStep>(_steps[_step]),
                     child: _buildStep(context),
                   ),
                 ),
