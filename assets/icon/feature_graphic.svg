@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#118069"/>
+      <stop offset="0.55" stop-color="#0E6B5C"/>
+      <stop offset="1" stop-color="#0A5146"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F7EDD8" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#F7EDD8" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 4-point twinkle star centred on the origin -->
+    <path id="star" d="M0 -42 L9 -9 L42 0 L9 9 L0 42 L-9 9 L-42 0 L-9 -9 Z"/>
+    <mask id="crescent">
+      <circle cx="512" cy="300" r="140" fill="white"/>
+      <circle cx="586" cy="238" r="116" fill="black"/>
+    </mask>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="500" fill="url(#sky)"/>
+
+  <!-- Soft glow behind the mosque scene -->
+  <ellipse cx="775" cy="310" rx="280" ry="220" fill="url(#glow)"/>
+
+  <!-- Twinkles -->
+  <use href="#star" transform="translate(140 70) scale(0.45)" fill="#F7EDD8" opacity="0.35"/>
+  <use href="#star" transform="translate(330 110) scale(0.30)" fill="#F7EDD8" opacity="0.30"/>
+  <use href="#star" transform="translate(480 60) scale(0.50)" fill="#F7EDD8" opacity="0.40"/>
+  <use href="#star" transform="translate(640 118) scale(0.30)" fill="#F7EDD8" opacity="0.30"/>
+  <use href="#star" transform="translate(960 90) scale(0.55)" fill="#F7EDD8" opacity="0.45"/>
+  <use href="#star" transform="translate(80 455) scale(0.35)" fill="#F7EDD8" opacity="0.30"/>
+  <use href="#star" transform="translate(420 462) scale(0.30)" fill="#F7EDD8" opacity="0.25"/>
+
+  <!-- Mosque scene, reused from the app icon -->
+  <g transform="translate(560 110) scale(0.42)">
+    <!-- Crescent moon -->
+    <circle cx="512" cy="300" r="140" fill="#F7EDD8" mask="url(#crescent)"/>
+
+    <!-- Star -->
+    <path d="M648 172 L657 204 L689 213 L657 222 L648 254 L639 222 L607 213 L639 204 Z" fill="#F7EDD8"/>
+
+    <!-- Minaret left -->
+    <path d="M208 470 L272 470 L240 414 Z" fill="#F7EDD8"/>
+    <rect x="208" y="470" width="64" height="314" fill="#F7EDD8"/>
+    <rect x="196" y="556" width="88" height="26" fill="#F7EDD8"/>
+
+    <!-- Minaret right -->
+    <path d="M752 470 L816 470 L784 414 Z" fill="#F7EDD8"/>
+    <rect x="752" y="470" width="64" height="314" fill="#F7EDD8"/>
+    <rect x="740" y="556" width="88" height="26" fill="#F7EDD8"/>
+
+    <!-- Dome finial -->
+    <rect x="506" y="492" width="12" height="30" fill="#F7EDD8"/>
+    <circle cx="512" cy="486" r="10" fill="#F7EDD8"/>
+
+    <!-- Dome -->
+    <path d="M382 648 A130 130 0 0 1 642 648 Z" fill="#F7EDD8"/>
+
+    <!-- Main hall -->
+    <rect x="300" y="648" width="424" height="136" fill="#F7EDD8"/>
+
+    <!-- Door -->
+    <path d="M474 784 L474 690 A38 38 0 0 1 550 690 L550 784 Z" fill="#0E6B5C"/>
+
+    <!-- Side windows -->
+    <path d="M368 760 L368 714 A18 18 0 0 1 404 714 L404 760 Z" fill="#0E6B5C"/>
+    <path d="M620 760 L620 714 A18 18 0 0 1 656 714 L656 760 Z" fill="#0E6B5C"/>
+
+    <!-- Base -->
+    <rect x="176" y="784" width="672" height="56" rx="10" fill="#F7EDD8"/>
+  </g>
+
+  <!-- App name -->
+  <g fill="#F7EDD8" font-family="Cantarell, DejaVu Sans, sans-serif">
+    <text x="64" y="204" font-size="108" font-weight="800">Simply</text>
+    <text x="64" y="308" font-size="108" font-weight="800">Athan</text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="64" y="372" font-family="Cantarell, DejaVu Sans, sans-serif"
+        font-size="33" font-weight="600" fill="#CFE9E0">Prayer times &amp; Qibla compass</text>
+
+  <!-- Privacy line -->
+  <text x="64" y="420" font-family="Cantarell, DejaVu Sans, sans-serif"
+        font-size="27" font-weight="600" fill="#F7EDD8" opacity="0.75">No ads &#183; No accounts &#183; No trackers</text>
+</svg>

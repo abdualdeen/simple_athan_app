@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- Sun disc -->
+    <path
+        android:fillColor="#FFFFF0C0"
+        android:pathData="M38,26m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0" />
+
+    <!-- Rays -->
+    <path
+        android:strokeColor="#FFFFF0C0"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round"
+        android:pathData="M38,6 L38,12 M38,40 L38,46 M18,26 L24,26 M52,26 L58,26 M24,12 L28,16 M48,36 L52,40 M24,40 L28,36 M48,16 L52,12" />
+
+    <!-- Drifting cloud -->
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M10,50 C6,50 4,47 4,44 C4,41 6,39 9,39 C10,35 13,33 17,33 C22,33 25,36 26,40 C30,40 32,42 32,45 C32,48 30,50 27,50 Z" />
+</vector>

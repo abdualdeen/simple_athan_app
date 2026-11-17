@@ -1,0 +1,237 @@
+// Simply Athan - prayer times and Qibla app.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/app_location.dart';
+import '../models/athan_sound.dart';
+import '../models/notification_settings.dart';
+import '../models/prayer.dart';
+import '../models/prayer_settings.dart';
+import '../theme/app_theme.dart';
+
+/// The saved locations and the index of the active one.
+typedef SavedLocationState = ({List<AppLocation> locations, int activeIndex});
+
+abstract interface class SettingsStore {
+  Future<PrayerSettings> loadSettings();
+  Future<void> saveSettings(PrayerSettings settings);
+
+  /// Whether a calculation method has been saved before, either by the user
+  /// or by the first-launch region suggestion.
+  Future<bool> hasSavedMethod();
+
+  /// The saved locations (at most two) and which one is active.
+  Future<SavedLocationState> loadLocations();
+  Future<void> saveLocations(SavedLocationState state);
+  Future<NotificationSettings> loadNotificationSettings();
+  Future<void> saveNotificationSettings(NotificationSettings settings);
+  Future<AppThemeChoice> loadTheme();
+  Future<void> saveTheme(AppThemeChoice choice);
+
+  /// Whether the theme should switch to its dark counterpart at sunset and
+  /// back at sunrise.
+  Future<bool> loadAutoTheme();
+  Future<void> saveAutoTheme(bool enabled);
+
+  /// Whether the first-launch intro has been finished.
+  Future<bool> loadOnboardingComplete();
+  Future<void> saveOnboardingComplete(bool complete);
+
+  /// Whether the device's position may be refreshed on launch. Only applies
+  /// to locations that were themselves found by the device.
+  Future<bool> loadAutomaticLocation();
+  Future<void> saveAutomaticLocation(bool enabled);
+}
+
+class SharedPreferencesSettingsStore implements SettingsStore {
+  static const String _methodKey = 'prayer_method';
+  static const String _madhabKey = 'asr_madhab';
+  static const String _locationNameKey = 'location_name';
+  static const String _locationLatitudeKey = 'location_latitude';
+  static const String _locationLongitudeKey = 'location_longitude';
+  static const String _activeLocationIndexKey = 'active_location_index';
+  static const String _notificationsEnabledKey = 'notifications_enabled';
+  static const String _mutedPrayersKey = 'muted_prayers';
+  static const String _notificationSoundKey = 'notification_sound';
+  static const String _themeKey = 'app_theme';
+  static const String _autoThemeKey = 'auto_night_theme';
+  static const String _onboardingCompleteKey = 'onboarding_complete';
+  static const String _automaticLocationKey = 'use_automatic_location';
+
+  @override
+  Future<PrayerSettings> loadSettings() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return PrayerSettings(
+      method: PrayerMethod.fromName(prefs.getString(_methodKey)),
+      madhab: AsrMadhab.fromName(prefs.getString(_madhabKey)),
+    );
+  }
+
+  @override
+  Future<void> saveSettings(PrayerSettings settings) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_methodKey, settings.method.name);
+    await prefs.setString(_madhabKey, settings.madhab.name);
+  }
+
+  @override
+  Future<bool> hasSavedMethod() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_methodKey) != null;
+  }
+
+  @override
+  Future<SavedLocationState> loadLocations() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<AppLocation> locations = <AppLocation?>[
+      _readSavedSlot(prefs, 0),
+      _readSavedSlot(prefs, 1),
+    ].whereType<AppLocation>().toList();
+
+    if (locations.isEmpty) {
+      // Installs from before multiple locations existed stored a single
+      // location under the legacy keys.
+      final AppLocation? legacy = _readLegacyLocation(prefs);
+      if (legacy == null) return (locations: locations, activeIndex: 0);
+      return (locations: <AppLocation>[legacy], activeIndex: 0);
+    }
+
+    final int index = prefs.getInt(_activeLocationIndexKey) ?? 0;
+    return (
+      locations: locations,
+      activeIndex: index.clamp(0, locations.length - 1),
+    );
+  }
+
+  AppLocation? _readSavedSlot(SharedPreferences prefs, int slot) {
+    final String? name = prefs.getString('saved_location_${slot}_name');
+    final double? latitude = prefs.getDouble('saved_location_${slot}_lat');
+    final double? longitude = prefs.getDouble('saved_location_${slot}_lng');
+    if (name == null || latitude == null || longitude == null) return null;
+    return AppLocation(
+      name: name,
+      latitude: latitude,
+      longitude: longitude,
+      isResolved: true,
+      fromDevice: prefs.getBool('saved_location_${slot}_device') ?? false,
+    );
+  }
+
+  AppLocation? _readLegacyLocation(SharedPreferences prefs) {
+    final String? name = prefs.getString(_locationNameKey);
+    final double? latitude = prefs.getDouble(_locationLatitudeKey);
+    final double? longitude = prefs.getDouble(_locationLongitudeKey);
+    if (name == null || latitude == null || longitude == null) return null;
+    return AppLocation(
+      name: name,
+      latitude: latitude,
+      longitude: longitude,
+      isResolved: true,
+    );
+  }
+
+  @override
+  Future<void> saveLocations(SavedLocationState state) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    for (int slot = 0; slot < 2; slot++) {
+      final String prefix = 'saved_location_${slot}_';
+      if (slot < state.locations.length) {
+        final AppLocation location = state.locations[slot];
+        await prefs.setString('${prefix}name', location.name);
+        await prefs.setDouble('${prefix}lat', location.latitude);
+        await prefs.setDouble('${prefix}lng', location.longitude);
+        await prefs.setBool('${prefix}device', location.fromDevice);
+      } else {
+        await prefs.remove('${prefix}name');
+        await prefs.remove('${prefix}lat');
+        await prefs.remove('${prefix}lng');
+        await prefs.remove('${prefix}device');
+      }
+    }
+    await prefs.setInt(_activeLocationIndexKey, state.activeIndex);
+  }
+
+  @override
+  Future<NotificationSettings> loadNotificationSettings() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> mutedNames =
+        prefs.getStringList(_mutedPrayersKey) ?? const <String>[];
+    return NotificationSettings(
+      enabled: prefs.getBool(_notificationsEnabledKey) ?? true,
+      muted: mutedNames.map(PrayerId.fromName).whereType<PrayerId>().toSet(),
+      sound: AthanSound.fromName(prefs.getString(_notificationSoundKey)),
+    );
+  }
+
+  @override
+  Future<void> saveNotificationSettings(NotificationSettings settings) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notificationsEnabledKey, settings.enabled);
+    await prefs.setStringList(
+      _mutedPrayersKey,
+      settings.muted.map((PrayerId id) => id.name).toList(),
+    );
+    await prefs.setString(_notificationSoundKey, settings.sound.name);
+  }
+
+  @override
+  Future<AppThemeChoice> loadTheme() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return AppThemeChoice.fromName(prefs.getString(_themeKey));
+  }
+
+  @override
+  Future<void> saveTheme(AppThemeChoice choice) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeKey, choice.name);
+  }
+
+  @override
+  Future<bool> loadAutoTheme() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoThemeKey) ?? false;
+  }
+
+  @override
+  Future<void> saveAutoTheme(bool enabled) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoThemeKey, enabled);
+  }
+
+  @override
+  Future<bool> loadOnboardingComplete() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingCompleteKey) ?? false;
+  }
+
+  @override
+  Future<void> saveOnboardingComplete(bool complete) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingCompleteKey, complete);
+  }
+
+  @override
+  Future<bool> loadAutomaticLocation() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_automaticLocationKey) ?? true;
+  }
+
+  @override
+  Future<void> saveAutomaticLocation(bool enabled) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_automaticLocationKey, enabled);
+  }
+}
