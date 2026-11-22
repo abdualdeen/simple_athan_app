@@ -32,7 +32,7 @@ jobs:
           fi
 
           case "${VERSION_NAME}" in
-            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *prerelease*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
             *)   echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
           esac
 
