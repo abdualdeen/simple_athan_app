@@ -65,7 +65,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         if: steps.version.outputs.exists == 'false'
         with:
-          channel: stable
+          # Pin to the Flutter version used locally so CI matches.
+          # Update this together with your local Flutter install.
+          flutter-version: '3.47.9'
           cache: true
 
       - name: Cache Gradle
