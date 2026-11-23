@@ -23,7 +23,14 @@ trackers — everything it knows about you stays on your device. See
 - **Qibla compass** — the bearing to the Qibla from your current location.
 - **Flexible locations** — use the device location automatically, or search
   for a place by name; up to two saved locations you can switch between.
-- **Themes** — Emerald, Dark, Olive, Sakura and Night Sky.
+- **Themes** — Emerald, Dark, Olive, Sakura and Night Sky (with dark variants).
+
+<p float="left">
+  <img src="assets/screenshots/emerald.png" width="24%" />
+  <img src="assets/screenshots/qibla.png" width="24%" />
+  <img src="assets/screenshots/night_sky.png" width="24%" />
+  <img src="assets/screenshots/sakura.png" width="24%" />
+</p>
 
 ## Getting started
 
