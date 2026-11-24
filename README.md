@@ -26,7 +26,7 @@ trackers — everything it knows about you stays on your device. See
 - **Themes** — Emerald, Dark, Olive, Sakura and Night Sky (with dark variants).
 
 <p float="left">
-  <img src="assets/screenshots/emerald.png" width="24%" />
+  <img src="assets/screenshots/emerlad.png" width="24%" />
   <img src="assets/screenshots/qibla.png" width="24%" />
   <img src="assets/screenshots/night_sky.png" width="24%" />
   <img src="assets/screenshots/sakura.png" width="24%" />
